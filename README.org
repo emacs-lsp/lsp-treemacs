@@ -1,0 +1,11 @@
+* Table of Contents                                       :TOC_4_gh:noexport:
+- [[#summary][Summary]]
+- [[#commands][Commands]]
+
+* Summary
+ Integration between ~lsp-mode~ and ~treemacs~ .
+
+* Commands
+ - ~lsp-treemacs-errors-list~ - displays tree like error list structure.
+   [[file:screenshots/error-list.png]]
+ - ~lsp-treemacs-quick-fix~ - offer quickfixes for the error at point.
