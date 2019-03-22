@@ -194,7 +194,7 @@
 
 (defun lsp-treemacs--diagnostic-icon (diagnostic)
   "Get the icon for DIAGNOSTIC."
-  (case (lsp-diagnostic-severity diagnostic)
+  (cl-case (lsp-diagnostic-severity diagnostic)
     (1 treemacs-icon-error)
     (2 treemacs-icon-warning)
     (t treemacs-icon-info)))
@@ -288,4 +288,5 @@
       (add-hook 'lsp-after-diagnostics-hook #'lsp-treemacs--after-diagnostics)
       (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-buffer nil t))))
 
+(provide 'lsp-treemacs)
 ;;; lsp-treemacs.el ends here
