@@ -108,16 +108,19 @@
 (defun lsp-treemacs-quick-fix ()
   "Select the element under cursor."
   (interactive)
-  (-let (((file . diag) (button-get (treemacs-node-at-point) :key))
-         (session (lsp-session)))
-    (with-current-buffer (find-file-noselect file)
-      (with-lsp-workspaces (gethash
-                            (lsp-find-session-folder session file)
-                            (lsp-session-folder->servers session))
-        (save-excursion
-          (goto-char (point-min))
-          (forward-line (lsp-diagnostic-line diag))
-          (call-interactively #'lsp-execute-code-action))))))
+  (let ((key (button-get (treemacs-node-at-point) :key)))
+    (if (and (consp key) (lsp-diagnostic-p (cdr key)))
+        (-let (((file . diag) key)
+               (session (lsp-session)))
+          (with-current-buffer (find-file-noselect file)
+            (with-lsp-workspaces (gethash
+                                  (lsp-find-session-folder session file)
+                                  (lsp-session-folder->servers session))
+              (save-excursion
+                (goto-char (point-min))
+                (forward-line (lsp-diagnostic-line diag))
+                (call-interactively #'lsp-execute-code-action)))))
+      (user-error "Not no a diagnostic"))))
 
 (defun lsp-treemacs-open-file (&rest _)
   "Open file."
@@ -260,14 +263,29 @@
 
 (defun lsp-treemacs--after-diagnostics ()
   "After diagnostics handler."
-  (with-demoted-errors "%s"
-    (with-current-buffer (get-buffer-create "*LSP Error List*")
-      (save-excursion
-        (treemacs-update-node '(:custom LSP-Errors))))))
+  (save-excursion
+    (condition-case _err
+        (with-current-buffer (get-buffer-create "*LSP Error List*")
+          (save-excursion
+            (treemacs-update-node
+             '(:custom LSP-Errors))))
+      (error))))
+
 
 (defun lsp-treemacs--kill-buffer ()
   "Kill buffer hook."
   (remove-hook 'lsp-after-diagnostics-hook #'lsp-treemacs--after-diagnostics))
+
+(defvar lsp-treemacs-error-list-mode-map
+  (let ((m (make-sparse-keymap)))
+    (define-key m (kbd "x") #'lsp-treemacs-quick-fix)
+    m)
+  "Keymap for `lsp-treemacs-error-list-mode'.")
+
+(define-minor-mode lsp-treemacs-error-list-mode ""
+  nil nil nil
+  :keymap lsp-treemacs-error-list-mode-map
+  :group 'lsp-treeemacs)
 
 ;;;###autoload
 (defun lsp-treemacs-errors-list ()
@@ -281,6 +299,7 @@
       (select-window window)
       (set-window-dedicated-p window t)
       (treemacs-initialize)
+      (lsp-treemacs-error-list-mode 1)
 
       (treemacs-LSP-ERROR-LIST-extension)
 

@@ -8,4 +8,4 @@
 * Commands
  - ~lsp-treemacs-errors-list~ - displays tree like error list structure.
    [[file:screenshots/error-list.png]]
- - ~lsp-treemacs-quick-fix~ - offer quickfixes for the error at point.
+ - ~lsp-treemacs-quick-fix~ or press ~x~ when you are in Error List view - offer quickfixes for the error at point.
