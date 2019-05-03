@@ -246,9 +246,7 @@
    :state treemacs-lsp-files-closed-state
    :key-form (cl-first item)))
 
-(treemacs-define-expandable-node lsp-error-list
-  :icon-open treemacs-icon-root
-  :icon-closed treemacs-icon-root
+(treemacs-define-variadic-node lsp-error-list
   :query-function (lsp-treemacs--root-folders)
   :render-action
   (treemacs-render-node
@@ -256,20 +254,16 @@
    :label-form (cl-first item)
    :state treemacs-lsp-projects-closed-state
    :key-form (cl-rest item))
-  :top-level-marker t
-  :root-label "Errors"
-  :root-face 'font-lock-function-name-face
   :root-key-form 'LSP-Errors)
 
 (defun lsp-treemacs--after-diagnostics ()
   "After diagnostics handler."
-  (save-excursion
-    (condition-case _err
-        (with-current-buffer (get-buffer-create "*LSP Error List*")
-          (save-excursion
-            (treemacs-update-node
-             '(:custom LSP-Errors))))
-      (error))))
+  (condition-case _err
+      (with-current-buffer (get-buffer-create "*LSP Error List*")
+        (save-excursion
+          (treemacs-update-node
+           '(:custom LSP-Errors))))
+    (error)))
 
 
 (defun lsp-treemacs--kill-buffer ()
