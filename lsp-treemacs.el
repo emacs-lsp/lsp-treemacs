@@ -261,10 +261,8 @@
   (condition-case _err
       (with-current-buffer (get-buffer-create "*LSP Error List*")
         (save-excursion
-          (treemacs-update-node
-           '(:custom LSP-Errors))))
+          (treemacs-update-node '(:custom LSP-Errors) t)))
     (error)))
-
 
 (defun lsp-treemacs--kill-buffer ()
   "Kill buffer hook."
@@ -297,7 +295,6 @@
 
       (treemacs-LSP-ERROR-LIST-extension)
 
-      (treemacs-expand-lsp-error-list)
       (add-hook 'lsp-after-diagnostics-hook #'lsp-treemacs--after-diagnostics)
       (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-buffer nil t))))
 
