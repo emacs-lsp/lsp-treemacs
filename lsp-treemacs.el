@@ -88,6 +88,10 @@
   "Severity level for `lsp-treemacs-error-list-mode'. 1 (highest) to 3 (lowest)"
   :type 'number)
 
+(defcustom lsp-treemacs-theme "Default"
+  "The `lsp-treemacs' theme."
+  :type 'string)
+
 (defun lsp-treemacs--match-diagnostic-severity (diagnostic)
   (<= (lsp-diagnostic-severity diagnostic)
       (prefix-numeric-value lsp-treemacs-error-list-severity)))
@@ -244,8 +248,8 @@
    :key-form item))
 
 (treemacs-define-expandable-node lsp-files
-  :icon-open-form  (treemacs-icon-for-file (treemacs-button-get btn :key))
-  :icon-closed-form  (treemacs-icon-for-file (treemacs-button-get btn :key))
+  :icon-open-form (treemacs-icon-for-file (treemacs-button-get btn :key))
+  :icon-closed-form (treemacs-icon-for-file (treemacs-button-get btn :key))
   :query-function (lsp-treemacs--errors (treemacs-button-get btn :key))
   :ret-action 'lsp-treemacs-open-file
   :render-action
@@ -266,8 +270,8 @@
      :more-properties (:data item))))
 
 (treemacs-define-expandable-node lsp-projects
-  :icon-open (treemacs-get-icon-value 'root nil "Default")
-  :icon-closed (treemacs-get-icon-value 'root nil "Default")
+  :icon-open (treemacs-get-icon-value 'root nil lsp-treemacs-theme)
+  :icon-closed (treemacs-get-icon-value 'root nil lsp-treemacs-theme)
   :query-function (lsp-treemacs--get-files (treemacs-button-get btn :key))
   :ret-action 'lsp-treemacs-open-file
   :render-action
@@ -281,7 +285,7 @@
   :query-function (lsp-treemacs--root-folders)
   :render-action
   (treemacs-render-node
-   :icon (treemacs-get-icon-value 'root nil "Default")
+   :icon (treemacs-get-icon-value 'root nil lsp-treemacs-theme)
    :label-form (cl-first item)
    :state treemacs-lsp-projects-closed-state
    :key-form (cl-rest item))
@@ -313,11 +317,13 @@
 
 ;;;###autoload
 (defun lsp-treemacs-errors-list ()
-  "Display treemacs error list."
+  "Display error list."
   (interactive)
 
   (-if-let (buffer (get-buffer "*LSP Error List*"))
-      (select-window (display-buffer-in-side-window buffer '((side . bottom))))
+      (progn
+        (select-window (display-buffer-in-side-window buffer '((side . bottom))))
+        (lsp-treemacs--after-diagnostics))
     (let* ((buffer (get-buffer-create "*LSP Error List*"))
            (window (display-buffer-in-side-window buffer '((side . bottom)))))
       (select-window window)
@@ -326,9 +332,238 @@
       (lsp-treemacs-error-list-mode 1)
 
       (treemacs-LSP-ERROR-LIST-extension)
+      (setq-local mode-line-format (propertize "LSP Errors View" 'face 'shadow))
 
       (add-hook 'lsp-diagnostics-updated-hook #'lsp-treemacs--after-diagnostics)
       (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-buffer nil t))))
 
+(treemacs-modify-theme "Default"
+  :icon-directory (f-join (f-dirname (or load-file-name buffer-file-name)) "icons/vscode")
+  :config
+  (progn
+    (treemacs-create-icon :file "BooleanData.png" :extensions (boolean-data) :fallback "-")
+    (treemacs-create-icon :file "Class.png" :extensions (class) :fallback "-")
+    (treemacs-create-icon :file "ColorPalette.png" :extensions (color-palette) :fallback "-")
+    (treemacs-create-icon :file "Constant.png" :extensions (constant) :fallback "-")
+    (treemacs-create-icon :file "Document.png" :extensions (document) :fallback "-")
+    (treemacs-create-icon :file "Enumerator.png" :extensions (enumerator) :fallback "-")
+    (treemacs-create-icon :file "EnumItem.png" :extensions (enumitem) :fallback "-")
+    (treemacs-create-icon :file "Event.png" :extensions (event) :fallback "-")
+    (treemacs-create-icon :file "Field.png" :extensions (field) :fallback "-")
+    (treemacs-create-icon :file "Indexer.png" :extensions (indexer) :fallback "-")
+    (treemacs-create-icon :file "IntelliSenseKeyword.png" :extensions (intellisense-keyword) :fallback "-")
+    (treemacs-create-icon :file "Interface.png" :extensions (interface) :fallback "-")
+    (treemacs-create-icon :file "LocalVariable.png" :extensions (localvariable) :fallback "-")
+    (treemacs-create-icon :file "Method.png" :extensions (method) :fallback "-")
+    (treemacs-create-icon :file "Namespace.png" :extensions (namespace) :fallback "-")
+    (treemacs-create-icon :file "Numeric.png" :extensions (numeric) :fallback "-")
+    (treemacs-create-icon :file "Operator.png" :extensions (operator) :fallback "-")
+    (treemacs-create-icon :file "Property.png" :extensions (property) :fallback "-")
+    (treemacs-create-icon :file "Snippet.png" :extensions (snippet) :fallback "-")
+    (treemacs-create-icon :file "String.png" :extensions (string) :fallback "-")
+    (treemacs-create-icon :file "Structure.png" :extensions (structure) :fallback "-")
+    (treemacs-create-icon :file "Template.png" :extensions (template) :fallback "-")
+    (treemacs-create-icon :file "collapsed.png" :extensions (collapsed) :fallback "-")
+    (treemacs-create-icon :file "expanded.png" :extensions (expanded) :fallback "-")))
+
+(defun lsp-treemacs--symbol-icon (symbol expanded)
+  "Get the symbol for the the kind."
+  (-let [(&hash "kind" "children") symbol]
+    (concat
+     (if (seq-empty-p children)
+         "   "
+       (treemacs-get-icon-value
+        (if expanded 'expanded 'collapsed)
+        nil
+        lsp-treemacs-theme))
+     (treemacs-get-icon-value
+      (cl-case kind
+        (1 'document)
+        (2  'namespace)
+        (3  'namespace)
+        (4  'namespace)
+        (5  'class)
+        (6  'method)
+        (7  'property)
+        (8  'field)
+        (9  'method)
+        (10 'enumerator)
+        (11 'interface)
+        (12 'method )
+        (13 'localvariable)
+        (14 'constant)
+        (15 'string)
+        (16 'numeric)
+        (17 'boolean-data)
+        (18  'boolean-data)
+        (19 'namespace)
+        (20 'indexer)
+        (21 'boolean-data)
+        (22 'enumitem)
+        (23 'structure)
+        (24 'event)
+        (25 'operator)
+        (26 'template))
+      nil
+      lsp-treemacs-theme))))
+
+(treemacs-define-expandable-node lsp-symbol
+  :icon-open-form (lsp-treemacs--symbol-icon (treemacs-button-get btn :symbol) t)
+  :icon-closed-form (lsp-treemacs--symbol-icon (treemacs-button-get btn :symbol) nil)
+  :query-function (append (gethash "children" (treemacs-button-get btn :symbol)) nil)
+  :ret-action 'lsp-treemacs-goto-symbol
+  :render-action
+  (treemacs-render-node
+   :icon (lsp-treemacs--symbol-icon item nil)
+   :label-form (gethash "name" item)
+   :state treemacs-lsp-symbol-closed-state
+   :key-form (gethash "name" item)
+   :more-properties (:symbol item)))
+
+(defvar-local lsp-treemacs--symbols nil)
+(defvar-local lsp-treemacs--symbols-tick nil)
+(defvar-local lsp-treemacs--empty nil)
+(defvar-local lsp-treemacs--symbols-state-string nil)
+(defvar-local lsp-treemacs--symbols-state-locals nil)
+(defvar lsp-treemacs--symbols-current-buffer nil)
+(defvar lsp-treemacs--symbols-last-buffer nil)
+(defvar lsp-treemacs--symbols-timer nil)
+
+(treemacs-define-variadic-node lsp-symbols-list
+  :query-function lsp-treemacs--symbols
+  :render-action
+  (treemacs-render-node
+   :icon (lsp-treemacs--symbol-icon item nil)
+   :label-form (gethash "name" item)
+   :state treemacs-lsp-symbol-closed-state
+   :key-form (gethash "name" item)
+   :more-properties (:symbol item))
+  :root-key-form 'LSP-Symbols)
+
+(defun lsp-treemacs--update-symbols ()
+  "After diagnostics handler."
+  (condition-case _err
+      (let ((inhibit-read-only t))
+        (with-current-buffer "*LSP Symbols List*"
+          (treemacs-update-node '(:custom LSP-Symbols) t)))
+    (error))
+
+  (when lsp-treemacs--symbols
+    (lsp-treemacs--expand '(:custom LSP-Symbols)))
+  (setq-local header-line-format
+              (unless lsp-treemacs--symbols
+                (propertize "The active buffer cannot provide symbols information."
+                            'face 'shadow))))
+
+(defun lsp-treemacs--update ()
+  (unless (eq (current-buffer) (get-buffer "*scratch*"))
+    (when (with-current-buffer "*LSP Symbols List*" (get-buffer-window))
+      (if (lsp--find-workspaces-for "textDocument/documentSymbol")
+          (when (or (not lsp-treemacs--symbols-tick)
+                    (not (eq lsp-treemacs--symbols-tick (buffer-modified-tick)))
+                    (not (eq (current-buffer) lsp-treemacs--symbols-current-buffer)))
+            (lsp-request-async "textDocument/documentSymbol"
+                               `(:textDocument ,(lsp--text-document-identifier))
+                               (lambda (document-symbols)
+                                 (save-excursion
+                                   (with-current-buffer "*LSP Symbols List*"
+                                     (setq-local lsp-treemacs--symbols document-symbols)
+                                     (lsp-treemacs--update-symbols))))
+                               :mode 'alive)
+            (setq-local lsp-treemacs--symbols-tick (buffer-modified-tick))
+            (setq lsp-treemacs--symbols-last-buffer (current-buffer)))
+        (when (buffer-file-name)
+          (with-current-buffer "*LSP Symbols List*"
+            (setq-local lsp-treemacs--symbols nil)
+            (lsp-treemacs--update-symbols)))))
+    (let ((buffer-changed (and lsp-treemacs--symbols-current-buffer
+                               (not (eq lsp-treemacs--symbols-current-buffer (current-buffer)))
+                               (not (eq (current-buffer) (get-buffer "*LSP Symbols List*"))))))
+      ;; (when buffer-changed
+      ;;   (with-current-buffer lsp-treemacs--symbols-current-buffer
+      ;;     (setq-local lsp-treemacs--symbols-state-string (with-current-buffer "*LSP Symbols List*"
+      ;;                                                      (buffer-string)))
+      ;;     (setq-local lsp-treemacs--symbols-state-locals (with-current-buffer "*LSP Symbols List*"
+      ;;                                                      (buffer-local-variables)))))
+      (setq lsp-treemacs--symbols-current-buffer (current-buffer))
+
+      ;; (when (and lsp-treemacs--symbols-state-string buffer-changed)
+      ;;   (with-current-buffer "*LSP Symbols List*"
+      ;;     (let ((buffer-string lsp-treemacs--symbols-state-string)
+      ;;           (locals lsp-treemacs--symbols-state-locals))
+      ;;       (let ((inhibit-read-only t))
+      ;;         (mapc (lambda (v)
+      ;;                 (condition-case ()
+      ;;                     (if (symbolp v)
+      ;;                         (makunbound v)
+      ;;                       (set (make-local-variable (car v)) (cdr v)))
+      ;;                   (setting-constant nil)))
+      ;;               locals)))))
+      )))
+
+(defun lsp-treemacs-goto-symbol (&rest _)
+  "Goto the symbol at point."
+  (interactive)
+  (if-let ((symbol-data (-some-> (treemacs-node-at-point)
+                                 (button-get :symbol))))
+      (with-current-buffer lsp-treemacs--symbols-last-buffer
+        (let ((p (lsp--position-to-point (or (-some->> symbol-data
+                                                       (gethash "selectionRange")
+                                                       (gethash "start"))
+                                             (-some->> symbol-data
+                                                       (gethash "location")
+                                                       (gethash "range")
+                                                       (gethash "start"))
+                                             (error "Unable to go to location")))))
+          (pop-to-buffer lsp-treemacs--symbols-last-buffer)
+          (goto-char p)))
+    (user-error "No symbol under point.")))
+
+(with-eval-after-load 'winum
+  (when (boundp 'winum-ignored-buffers)
+    (add-to-list 'winum-ignored-buffers "*LSP Symbols List*")
+    (add-to-list 'winum-ignored-buffers "*LSP Error List*")))
+
+(defun lsp-treemacs--expand (root-key)
+  (-when-let (root (treemacs-dom-node->position (treemacs-find-in-dom root-key)))
+    (treemacs-save-position
+     (lsp-treemacs--expand-recursively root))))
+
+(defun lsp-treemacs--kill-symbols-buffer ()
+  (and lsp-treemacs--symbols-timer (cancel-timer lsp-treemacs--symbols-timer)))
+
+;; ;;;###autoload
+(defun lsp-treemacs-symbols ()
+  "Show symbols view."
+  (interactive)
+  (let ((original-buffer (current-buffer))
+        (position '((side . left) (slot . 2))))
+    (if-let (buf (get-buffer "*LSP Symbols List*"))
+        (select-window (display-buffer-in-side-window buf position))
+      (let* ((buf (get-buffer-create "*LSP Symbols List*"))
+             (window (display-buffer-in-side-window buf position)))
+        (select-window window)
+        (set-window-dedicated-p window t)
+        (treemacs-initialize)
+        (treemacs-LSP-SYMBOLS-LIST-extension)
+        (setq lsp-treemacs--symbols-timer (run-at-time 0 1.0 #'lsp-treemacs--update))
+        (setq-local mode-line-format (propertize "LSP Symbols View" 'face 'shadow))
+        (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-symbols-buffer nil t)))
+    (with-current-buffer original-buffer (lsp-treemacs--update))))
+
+(defun lsp-treemacs--expand-recursively (root)
+  (-map
+   (lambda (btn)
+     (unless (treemacs-is-node-expanded? btn)
+       (save-excursion
+         (goto-char (marker-position btn))
+         (funcall (alist-get (treemacs-button-get btn :state) treemacs-TAB-actions-config))))
+     (lsp-treemacs--expand-recursively btn))
+   (treemacs--get-children-of root)))
+
 (provide 'lsp-treemacs)
 ;;; lsp-treemacs.el ends here
+
+;; Local Variables:
+;; flycheck-disabled-checkers: (emacs-lisp-checkdoc)
+;; End:
