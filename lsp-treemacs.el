@@ -266,7 +266,7 @@
 
 (defun lsp-treemacs--kill-buffer ()
   "Kill buffer hook."
-  (remove-hook 'lsp-after-diagnostics-hook #'lsp-treemacs--after-diagnostics))
+  (remove-hook 'lsp-diagnostics-updated-hook #'lsp-treemacs--after-diagnostics))
 
 (defvar lsp-treemacs-error-list-mode-map
   (let ((m (make-sparse-keymap)))
@@ -295,7 +295,7 @@
 
       (treemacs-LSP-ERROR-LIST-extension)
 
-      (add-hook 'lsp-after-diagnostics-hook #'lsp-treemacs--after-diagnostics)
+      (add-hook 'lsp-diagnostics-updated-hook #'lsp-treemacs--after-diagnostics)
       (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-buffer nil t))))
 
 (provide 'lsp-treemacs)
