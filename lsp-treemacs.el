@@ -203,9 +203,9 @@
     (t treemacs-icon-info)))
 
 (treemacs-define-expandable-node lsp-error
-  :icon-open-form (lsp-treemacs--diagnostic-icon (cl-rest (treemacs-button-get btn :key)))
-  :icon-closed-form (lsp-treemacs--diagnostic-icon (cl-rest (treemacs-button-get btn :key)))
-  :query-function (lsp-treemacs--errors (treemacs-button-get btn :key))
+  :icon-open-form (lsp-treemacs--diagnostic-icon (cl-rest (treemacs-button-get btn :data)))
+  :icon-closed-form (lsp-treemacs--diagnostic-icon (cl-rest (treemacs-button-get btn :data)))
+  :query-function (lsp-treemacs--errors (treemacs-button-get btn :data))
   :ret-action 'lsp-treemacs-open-error
   :render-action
   (treemacs-render-node
@@ -220,19 +220,21 @@
   :query-function (lsp-treemacs--errors (treemacs-button-get btn :key))
   :ret-action 'lsp-treemacs-open-file
   :render-action
-  (treemacs-render-node
-   :icon (lsp-treemacs--diagnostic-icon (cl-rest item))
-   :label-form (-let [diag (cl-rest item)]
-                 (format (propertize "%s %s %s" 'face 'default)
-                         (propertize (format "[%s]" (lsp-diagnostic-source diag))
-                                     'face 'shadow)
-                         (lsp-diagnostic-message diag)
-                         (propertize (format "(%s:%s)"
-                                             (lsp-diagnostic-line diag)
-                                             (lsp-diagnostic-column diag))
-                                     'face 'lsp-lens-face)))
-   :state treemacs-lsp-error-open-state
-   :key-form item))
+  (let* ((diag (cl-rest item))
+         (label (format (propertize "%s %s %s" 'face 'default)
+                        (propertize (format "[%s]" (lsp-diagnostic-source diag))
+                                    'face 'shadow)
+                        (lsp-diagnostic-message diag)
+                        (propertize (format "(%s:%s)"
+                                            (lsp-diagnostic-line diag)
+                                            (lsp-diagnostic-column diag))
+                                    'face 'lsp-lens-face))))
+    (treemacs-render-node
+     :icon (lsp-treemacs--diagnostic-icon (cl-rest item))
+     :label-form label
+     :state treemacs-lsp-error-open-state
+     :key-form label
+     :more-properties (:data item))))
 
 (treemacs-define-expandable-node lsp-projects
   :icon-open treemacs-icon-root
@@ -260,8 +262,7 @@
   "After diagnostics handler."
   (condition-case _err
       (with-current-buffer (get-buffer-create "*LSP Error List*")
-        (save-excursion
-          (treemacs-update-node '(:custom LSP-Errors) t)))
+        (treemacs-update-node '(:custom LSP-Errors) t))
     (error)))
 
 (defun lsp-treemacs--kill-buffer ()
