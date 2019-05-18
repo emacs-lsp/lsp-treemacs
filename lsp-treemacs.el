@@ -130,7 +130,7 @@
 (defun lsp-treemacs-open-error (&rest _)
   "Open error."
   (interactive)
-  (-let [(file . diag) (button-get (treemacs-node-at-point) :key)]
+  (-let [(file . diag) (button-get (treemacs-node-at-point) :data)]
     (find-file-other-window file)
     (goto-char (point-min))
     (forward-line (lsp-diagnostic-line diag))
