@@ -260,10 +260,11 @@
 
 (defun lsp-treemacs--after-diagnostics ()
   "After diagnostics handler."
-  (condition-case _err
-      (with-current-buffer (get-buffer-create "*LSP Error List*")
-        (treemacs-update-node '(:custom LSP-Errors) t))
-    (error)))
+  (save-excursion
+    (condition-case _err
+        (with-current-buffer (get-buffer-create "*LSP Error List*")
+          (treemacs-update-node '(:custom LSP-Errors) t))
+      (error))))
 
 (defun lsp-treemacs--kill-buffer ()
   "Kill buffer hook."
