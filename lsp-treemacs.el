@@ -108,7 +108,7 @@
 (defun lsp-treemacs-quick-fix ()
   "Select the element under cursor."
   (interactive)
-  (let ((key (button-get (treemacs-node-at-point) :key)))
+  (let ((key (button-get (treemacs-node-at-point) :data)))
     (if (and (consp key) (lsp-diagnostic-p (cdr key)))
         (-let (((file . diag) key)
                (session (lsp-session)))
