@@ -119,7 +119,7 @@
               (save-excursion
                 (goto-char (point-min))
                 (forward-line (lsp-diagnostic-line diag))
-                (call-interactively #'lsp-execute-code-action)))))
+                (lsp-execute-code-action-by-kind "quickfix")))))
       (user-error "Not no a diagnostic"))))
 
 (defun lsp-treemacs-open-file (&rest _)
