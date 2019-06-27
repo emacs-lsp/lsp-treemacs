@@ -33,8 +33,6 @@
 
 (require 'lsp-mode)
 
-(treemacs--select-icon-set)
-
 (defgroup lsp-treemacs nil
   "Language Server Protocol client."
   :group 'tools
