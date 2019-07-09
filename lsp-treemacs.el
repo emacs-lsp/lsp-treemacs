@@ -34,8 +34,6 @@
 
 (require 'lsp-mode)
 
-(treemacs--select-icon-set)
-
 (defgroup lsp-treemacs nil
   "Language Server Protocol client."
   :group 'tools
@@ -240,8 +238,8 @@
      :more-properties (:data item))))
 
 (treemacs-define-expandable-node lsp-projects
-  :icon-open treemacs-icon-root
-  :icon-closed treemacs-icon-root
+  :icon-open (treemacs-get-icon-value 'root nil "Default")
+  :icon-closed (treemacs-get-icon-value 'root nil "Default")
   :query-function (lsp-treemacs--get-files (treemacs-button-get btn :key))
   :ret-action 'lsp-treemacs-open-file
   :render-action
@@ -255,7 +253,7 @@
   :query-function (lsp-treemacs--root-folders)
   :render-action
   (treemacs-render-node
-   :icon treemacs-icon-root
+   :icon (treemacs-get-icon-value 'root nil "Default")
    :label-form (cl-first item)
    :state treemacs-lsp-projects-closed-state
    :key-form (cl-rest item))
