@@ -85,6 +85,16 @@
   "Alist diagnostics to face."
   :type 'alist)
 
+(defcustom lsp-treemacs-error-list-severity 3
+  "Severity level for `lsp-treemacs-error-list-mode'. 1 (highest) to 3 (lowest)"
+  :type 'number)
+
+(defun lsp-treemacs--diagnostics-match-selected-severity (diagnostics)
+  (-some (lambda (diagnostic)
+           (<= (lsp-diagnostic-severity diagnostic)
+               (prefix-numeric-value lsp-treemacs-error-list-severity)))
+         diagnostics))
+
 (defun lsp-treemacs--root-folders ()
   "Get root folders containing errors."
 
@@ -92,8 +102,11 @@
     (->> (lsp-session)
          lsp-session-folders
          (-filter (lambda (folder-name)
-                    (-some (-partial #'s-starts-with? folder-name)
-                           (ht-keys diagnostics))))
+                    (-some (-lambda ((file-name . file-diagnostics))
+                             (and
+                              (s-starts-with? folder-name file-name)
+                              (lsp-treemacs--diagnostics-match-selected-severity file-diagnostics)))
+                           (ht->alist diagnostics))))
          (-map
           (lambda (root-folder)
             (cons
@@ -123,6 +136,15 @@
                 (forward-line (lsp-diagnostic-line diag))
                 (lsp-execute-code-action-by-kind "quickfix")))))
       (user-error "Not no a diagnostic"))))
+
+(defun lsp-treemacs-cycle-severity ()
+  "Cycle through the severity levels shown in the errors list"
+  (interactive)
+  (setq lsp-treemacs-error-list-severity
+        (if (= lsp-treemacs-error-list-severity 1)
+            3
+          (1- lsp-treemacs-error-list-severity)))
+  (lsp-treemacs--after-diagnostics))
 
 (defun lsp-treemacs-open-file (&rest _)
   "Open file."
@@ -157,7 +179,8 @@
   "Calculate ROOT-FOLDER face based on DIAGNOSTICS."
   (->> diagnostics
        (ht-map (lambda (file-name file-diags)
-                 (when (s-starts-with? root-folder file-name)
+                 (when (and (s-starts-with? root-folder file-name)
+                            (lsp-treemacs--diagnostics-match-selected-severity file-diags))
                    file-diags)))
        (apply #'append)))
 
@@ -175,7 +198,8 @@
   (--> (lsp-diagnostics)
        ht->alist
        (-keep (-lambda ((file-name . file-diagnostics))
-                (when (s-starts-with? project-root file-name)
+                (when (and (s-starts-with? project-root file-name)
+                           (lsp-treemacs--diagnostics-match-selected-severity file-diagnostics))
                   (cons file-name
                         (format (propertize "%s %s %s" 'face 'default)
                                 (propertize (f-filename file-name)
@@ -275,6 +299,7 @@
 (defvar lsp-treemacs-error-list-mode-map
   (let ((m (make-sparse-keymap)))
     (define-key m (kbd "x") #'lsp-treemacs-quick-fix)
+    (define-key m (kbd "=") #'lsp-treemacs-cycle-severity)
     m)
   "Keymap for `lsp-treemacs-error-list-mode'.")
 
