@@ -5,6 +5,7 @@
 ;; Author: Ivan Yonchovski
 ;; Keywords: languages
 ;; Package-Requires: ((emacs "25.1") (dash "2.14.1") (dash-functional "2.14.1") (f "0.20.0") (ht "2.0") (treemacs "2.5") (lsp-mode "6.0"))
+;; Homepage: https://github.com/emacs-lsp/lsp-treemacs
 ;; Version: 0.1
 
 ;; This program is free software; you can redistribute it and/or modify
@@ -32,8 +33,6 @@
 (require 'treemacs-icons)
 
 (require 'lsp-mode)
-
-(treemacs--select-icon-set)
 
 (defgroup lsp-treemacs nil
   "Language Server Protocol client."
@@ -263,8 +262,8 @@
      :more-properties (:data item))))
 
 (treemacs-define-expandable-node lsp-projects
-  :icon-open treemacs-icon-root
-  :icon-closed treemacs-icon-root
+  :icon-open (treemacs-get-icon-value 'root nil "Default")
+  :icon-closed (treemacs-get-icon-value 'root nil "Default")
   :query-function (lsp-treemacs--get-files (treemacs-button-get btn :key))
   :ret-action 'lsp-treemacs-open-file
   :render-action
@@ -278,7 +277,7 @@
   :query-function (lsp-treemacs--root-folders)
   :render-action
   (treemacs-render-node
-   :icon treemacs-icon-root
+   :icon (treemacs-get-icon-value 'root nil "Default")
    :label-form (cl-first item)
    :state treemacs-lsp-projects-closed-state
    :key-form (cl-rest item))
