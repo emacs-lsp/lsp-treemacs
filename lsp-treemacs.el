@@ -5,6 +5,7 @@
 ;; Author: Ivan Yonchovski
 ;; Keywords: languages
 ;; Package-Requires: ((emacs "25.1") (dash "2.14.1") (dash-functional "2.14.1") (f "0.20.0") (ht "2.0") (treemacs "2.5") (lsp-mode "6.0"))
+;; Homepage: https://github.com/emacs-lsp/lsp-treemacs
 ;; Version: 0.1
 
 ;; This program is free software; you can redistribute it and/or modify
