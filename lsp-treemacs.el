@@ -88,11 +88,12 @@
   "Severity level for `lsp-treemacs-error-list-mode'. 1 (highest) to 3 (lowest)"
   :type 'number)
 
+(defun lsp-treemacs--match-diagnostic-severity (diagnostic)
+  (<= (lsp-diagnostic-severity diagnostic)
+      (prefix-numeric-value lsp-treemacs-error-list-severity)))
+
 (defun lsp-treemacs--diagnostics-match-selected-severity (diagnostics)
-  (-some (lambda (diagnostic)
-           (<= (lsp-diagnostic-severity diagnostic)
-               (prefix-numeric-value lsp-treemacs-error-list-severity)))
-         diagnostics))
+  (-some #'lsp-treemacs--match-diagnostic-severity diagnostics))
 
 (defun lsp-treemacs--root-folders ()
   "Get root folders containing errors."
@@ -185,12 +186,14 @@
 
 (defun lsp-treemacs--diag-statistics (file-diagnostics)
   "Calculate FILE-DIAGNOSTICS statistics."
-  (string-join
-   (-map (-lambda ((severity . diagnostics))
-           (propertize (f-filename (number-to-string (length diagnostics)))
-                       'face (cl-rest (assoc severity lsp-treemacs-file-face-map))))
-         (-group-by 'lsp-diagnostic-severity file-diagnostics))
-   "/"))
+  (->> file-diagnostics
+       (-filter #'lsp-treemacs--match-diagnostic-severity)
+       (-group-by 'lsp-diagnostic-severity)
+       (-sort (-lambda ((left) (right)) (< left right)))
+       (-map (-lambda ((severity . diagnostics))
+               (propertize (f-filename (number-to-string (length diagnostics)))
+                           'face (cl-rest (assoc severity lsp-treemacs-file-face-map)))))
+       (s-join "/")))
 
 (defun lsp-treemacs--get-files (project-root)
   "Get files with errors in PROJECT-ROOT."
@@ -212,6 +215,7 @@
   "Get errors for FILE-NAME."
   (->> (lsp-diagnostics)
        (gethash file-name)
+       (-filter #'lsp-treemacs--match-diagnostic-severity)
        (--sort (if (= (lsp-diagnostic-line it)
                       (lsp-diagnostic-line other))
                    (< (lsp-diagnostic-column it)
