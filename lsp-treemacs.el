@@ -153,7 +153,9 @@
 (defun lsp-treemacs-open-file (&rest _)
   "Open file."
   (interactive)
-  (find-file-other-window (button-get (treemacs-node-at-point) :key)))
+  (let ((file (button-get (treemacs-node-at-point) :key)))
+    (select-window (get-mru-window (selected-frame) nil :not-selected))
+    (find-file file)))
 
 (defun lsp-treemacs-open-error (&rest _)
   "Open error."
@@ -330,6 +332,8 @@
       (set-window-dedicated-p window t)
       (treemacs-initialize)
       (lsp-treemacs-error-list-mode 1)
+
+      (setq-local treemacs-default-visit-action 'treemacs-RET-action)
 
       (treemacs-LSP-ERROR-LIST-extension)
       (setq-local mode-line-format (propertize "LSP Errors View" 'face 'shadow))
@@ -545,6 +549,7 @@
         (select-window window)
         (set-window-dedicated-p window t)
         (treemacs-initialize)
+        (setq-local treemacs-default-visit-action 'treemacs-RET-action)
         (treemacs-LSP-SYMBOLS-LIST-extension)
         (setq lsp-treemacs--symbols-timer (run-at-time 0 1.0 #'lsp-treemacs--update))
         (setq-local mode-line-format (propertize "LSP Symbols View" 'face 'shadow))
