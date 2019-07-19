@@ -412,9 +412,9 @@
       lsp-treemacs-theme))))
 
 (treemacs-define-expandable-node lsp-symbol
-  :icon-open-form (lsp-treemacs--symbol-icon (treemacs-button-get btn :symbol) t)
-  :icon-closed-form (lsp-treemacs--symbol-icon (treemacs-button-get btn :symbol) nil)
-  :query-function (append (gethash "children" (treemacs-button-get btn :symbol)) nil)
+  :icon-open-form (lsp-treemacs--symbol-icon (treemacs-button-get node :symbol) t)
+  :icon-closed-form (lsp-treemacs--symbol-icon (treemacs-button-get node :symbol) nil)
+  :query-function (append (gethash "children" (treemacs-button-get node :symbol)) nil)
   :ret-action 'lsp-treemacs-goto-symbol
   :render-action
   (treemacs-render-node
