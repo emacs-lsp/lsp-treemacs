@@ -238,9 +238,9 @@
     (t treemacs-icon-info)))
 
 (treemacs-define-expandable-node lsp-error
-  :icon-open-form (lsp-treemacs--diagnostic-icon (cl-rest (treemacs-button-get btn :data)))
-  :icon-closed-form (lsp-treemacs--diagnostic-icon (cl-rest (treemacs-button-get btn :data)))
-  :query-function (lsp-treemacs--errors (treemacs-button-get btn :data))
+  :icon-open-form (lsp-treemacs--diagnostic-icon (cl-rest (treemacs-button-get node :data)))
+  :icon-closed-form (lsp-treemacs--diagnostic-icon (cl-rest (treemacs-button-get node :data)))
+  :query-function (lsp-treemacs--errors (treemacs-button-get node :data))
   :ret-action 'lsp-treemacs-open-error
   :render-action
   (treemacs-render-node
@@ -250,9 +250,9 @@
    :key-form item))
 
 (treemacs-define-expandable-node lsp-files
-  :icon-open-form (treemacs-icon-for-file (treemacs-button-get btn :key))
-  :icon-closed-form (treemacs-icon-for-file (treemacs-button-get btn :key))
-  :query-function (lsp-treemacs--errors (treemacs-button-get btn :key))
+  :icon-open-form (treemacs-icon-for-file (treemacs-button-get node :key))
+  :icon-closed-form (treemacs-icon-for-file (treemacs-button-get node :key))
+  :query-function (lsp-treemacs--errors (treemacs-button-get node :key))
   :ret-action 'lsp-treemacs-open-file
   :render-action
   (let* ((diag (cl-rest item))
@@ -274,7 +274,7 @@
 (treemacs-define-expandable-node lsp-projects
   :icon-open (treemacs-get-icon-value 'root nil lsp-treemacs-theme)
   :icon-closed (treemacs-get-icon-value 'root nil lsp-treemacs-theme)
-  :query-function (lsp-treemacs--get-files (treemacs-button-get btn :key))
+  :query-function (lsp-treemacs--get-files (treemacs-button-get node :key))
   :ret-action 'lsp-treemacs-open-file
   :render-action
   (treemacs-render-node
