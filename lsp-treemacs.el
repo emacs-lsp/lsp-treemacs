@@ -452,7 +452,7 @@
           (treemacs-update-node '(:custom LSP-Symbols) t)))
     (error))
 
-  (when lsp-treemacs--symbols
+  (when (and lsp-treemacs--symbols (> 30 (length lsp-treemacs--symbols)))
     (lsp-treemacs--expand '(:custom LSP-Symbols)))
   (setq-local header-line-format
               (unless lsp-treemacs--symbols
