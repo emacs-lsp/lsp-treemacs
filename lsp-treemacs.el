@@ -419,7 +419,7 @@
   :render-action
   (treemacs-render-node
    :icon (lsp-treemacs--symbol-icon item nil)
-   :label-form (gethash "name" item)
+   :label-form (propertize (gethash "name" item) 'face 'default)
    :state treemacs-lsp-symbol-closed-state
    :key-form (gethash "name" item)
    :more-properties (:symbol item)))
@@ -438,7 +438,7 @@
   :render-action
   (treemacs-render-node
    :icon (lsp-treemacs--symbol-icon item nil)
-   :label-form (gethash "name" item)
+   :label-form (propertize (gethash "name" item) 'face 'default)
    :state treemacs-lsp-symbol-closed-state
    :key-form (gethash "name" item)
    :more-properties (:symbol item))
