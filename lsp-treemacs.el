@@ -536,7 +536,7 @@
 (defun lsp-treemacs--kill-symbols-buffer ()
   (and lsp-treemacs--symbols-timer (cancel-timer lsp-treemacs--symbols-timer)))
 
-;; ;;;###autoload
+;;;###autoload
 (defun lsp-treemacs-symbols ()
   "Show symbols view."
   (interactive)
