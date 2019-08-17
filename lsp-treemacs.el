@@ -34,10 +34,19 @@
 
 (require 'lsp-mode)
 
+(defconst lsp-treemacs-deps-buffer-name "*Java Dependency List*")
+
+
 (defgroup lsp-treemacs nil
   "Language Server Protocol client."
   :group 'tools
   :tag "Language Server")
+
+(defvar lsp-treemacs-deps-position-params
+  '((side . left)
+    (slot . 1)
+    (window-width . 35))
+  "The params which will be used by `display-buffer-in-side-window'.")
 
 (defface lsp-treemacs-project-root-error
   '((t :inherit font-lock-keyword-face))
@@ -368,7 +377,36 @@
     (treemacs-create-icon :file "Structure.png" :extensions (structure) :fallback "-")
     (treemacs-create-icon :file "Template.png" :extensions (template) :fallback "-")
     (treemacs-create-icon :file "collapsed.png" :extensions (collapsed) :fallback "-")
-    (treemacs-create-icon :file "expanded.png" :extensions (expanded) :fallback "-")))
+    (treemacs-create-icon :file "expanded.png" :extensions (expanded) :fallback "-")
+    (treemacs-create-icon :file "classfile.png" :extensions (classfile) :fallback "-")
+    (treemacs-create-icon :file "default_folder_opened.png" :extensions (default-folder-opened) :fallback "-")
+    (treemacs-create-icon :file "default_folder.png" :extensions (default-folder) :fallback "-")
+    (treemacs-create-icon :file "default_root_folder_opened.png" :extensions (default-root-folder-opened) :fallback "-")
+    (treemacs-create-icon :file "default_root_folder.png" :extensions (default-root-folder) :fallback "-")
+    (treemacs-create-icon :file "file_type_class.png" :extensions ("class") :fallback "-")
+    (treemacs-create-icon :file "file_type_jar.png" :extensions (file-type-jar) :fallback "-")
+    (treemacs-create-icon :file "folder-open.png" :extensions (folder-open) :fallback "-")
+    (treemacs-create-icon :file "folder.png" :extensions (folder) :fallback "-")
+    (treemacs-create-icon :file "folder_type_component_opened.png" :extensions (folder-type-component-opened) :fallback "-")
+    (treemacs-create-icon :file "folder_type_component.png" :extensions (folder-type-component) :fallback "-")
+    (treemacs-create-icon :file "folder_type_library_opened.png" :extensions (folder-type-library-opened) :fallback "-")
+    (treemacs-create-icon :file "folder_type_library.png" :extensions (folder-type-library) :fallback "-")
+    (treemacs-create-icon :file "folder_type_maven_opened.png" :extensions (folder-type-maven-opened) :fallback "-")
+    (treemacs-create-icon :file "folder_type_maven.png" :extensions (folder-type-maven) :fallback "-")
+    (treemacs-create-icon :file "folder_type_package_opened.png" :extensions (folder-type-package-opened) :fallback "-")
+    (treemacs-create-icon :file "folder_type_package.png" :extensions (folder-type-package) :fallback "-")
+    (treemacs-create-icon :file "icon-create.png" :extensions (icon-create) :fallback "-")
+    (treemacs-create-icon :file "icon-flat.png" :extensions (icon-flat) :fallback "-")
+    (treemacs-create-icon :file "icon-hierarchical.png" :extensions (icon-hierarchical) :fallback "-")
+    (treemacs-create-icon :file "icon-link.png" :extensions (icon-link) :fallback "-")
+    (treemacs-create-icon :file "icon-refresh.png" :extensions (icon-refresh) :fallback "-")
+    (treemacs-create-icon :file "icon-unlink.png" :extensions (icon-unlink) :fallback "-")
+    (treemacs-create-icon :file "jar.png" :extensions (jar) :fallback "-")
+    (treemacs-create-icon :file "library.png" :extensions (library) :fallback "-")
+    (treemacs-create-icon :file "packagefolder-open.png" :extensions (packagefolder-open) :fallback "-")
+    (treemacs-create-icon :file "packagefolder.png" :extensions (packagefolder) :fallback "-")
+    (treemacs-create-icon :file "package.png" :extensions (package) :fallback "-")
+    (treemacs-create-icon :file "project.png" :extensions (java-project) :fallback "-")))
 
 (defun lsp-treemacs--symbol-icon (symbol expanded)
   "Get the symbol for the the kind."
@@ -565,6 +603,201 @@
          (funcall (alist-get (treemacs-button-get btn :state) treemacs-TAB-actions-config))))
      (lsp-treemacs--expand-recursively btn))
    (treemacs--get-children-of root)))
+
+
+(defmacro lsp-treemacs-deps-with-jdtls (&rest body)
+  "Helper macro for invoking BODY against WORKSPACE context."
+  (declare (debug (form body))
+           (indent 0))
+  `(if-let (lsp--cur-workspace (lsp-find-workspace 'jdtls nil))
+       (progn ,@body)
+     (user-error "Java Language Server is not started.")))
+
+(defun lsp-treemacs-deps--goto-element (&rest _args)
+  (if-let ((dep (-some-> (treemacs-node-at-point)
+                         (button-get :dep))))
+      (--doto (find-file-noselect
+               (or (-some-> (gethash "uri" dep)
+                            (lsp--uri-to-path))
+                   (when (f-exists? (gethash "path" dep))
+                     (gethash "path" dep))
+                   (concat (f-parent (lsp--uri-to-path (gethash "projectUri" dep)))
+                           (gethash "path" dep))))
+        (select-window (get-mru-window nil nil t))
+        (switch-to-buffer it))
+    (user-error "No element under point.")))
+
+(defun lsp-treemacs-deps--icon (dep expanded)
+  "Get the symbol for the the kind."
+  (-let (((&hash "uri" "name" "kind" "entryKind" entry-kind) dep))
+    (concat
+     (treemacs-get-icon-value
+      (if expanded 'expanded 'collapsed)
+      nil
+      lsp-treemacs-theme)
+     (if (or (= kind 8)
+             (= kind 6))
+         (treemacs-icon-for-file uri)
+       (treemacs-get-icon-value
+        (cond
+         ((eq entry-kind 2) 'jar)
+         ((eq kind 5) 'package)
+         ((eq kind 7) 'folder)
+         ((eq kind 4) 'packagefolder)
+         ((eq kind 2) 'java-project)
+         ((eq entry-kind 3) 'packagefolder)
+         ((eq entry-kind 5) 'library))
+        nil
+        lsp-treemacs-theme)))))
+
+(defun lsp-treemacs-deps--get-children (dep)
+  (lsp-treemacs-deps-with-jdtls
+    (-let (((&hash "projectUri" project-uri "rootPath" root-path "path" "kind" "name") dep))
+      (unless (or (= kind 6)
+                  (= kind 8))
+        (->> (lsp-send-execute-command
+              "java.getPackageData"
+              (vector (ht ("kind"  kind)
+                          ("path"  (unless (eq kind 2)
+                                     (if (= 5 kind)
+                                         name
+                                       path)))
+                          ("rootPath" (unless (eq kind 2)
+                                        (or root-path path)))
+                          ("projectUri"  project-uri))))
+             (-mapcat (lambda (inner-dep)
+                        (puthash "projectUri" project-uri inner-dep)
+                        (when (= kind 4)
+                          (puthash "rootPath" path inner-dep))
+                        (if (eq (gethash "entryKind" inner-dep) 3)
+                            (lsp-treemacs-deps--get-children inner-dep)
+                          (list inner-dep)))))))))
+
+(defun lsp-treemacs-deps--java-file? (dep)
+  (-let [(&hash "kind" "entryKind" entry-kind) dep]
+    (and (eq kind 6)
+         (or (eq entry-kind 1)
+             (eq entry-kind 2)))))
+
+(treemacs-define-expandable-node lsp-treemacs-deps
+  :icon-open-form (lsp-treemacs-deps--icon (treemacs-button-get node :dep) t)
+  :icon-closed-form (lsp-treemacs-deps--icon (treemacs-button-get node :dep) nil)
+  :query-function (-let (((dep &as &hash "uri") (treemacs-button-get node :dep)))
+                    (if (lsp-treemacs-deps--java-file? dep)
+                        (lsp-treemacs-deps-with-jdtls
+                          (lsp-request "textDocument/documentSymbol"
+                                       `(:textDocument (:uri ,uri))))
+                      (lsp-treemacs-deps--get-children dep)))
+  :ret-action 'lsp-treemacs-deps--goto-element
+  :render-action (if (lsp-treemacs-deps--java-file? (treemacs-button-get node :dep))
+                     (treemacs-render-node
+                      :icon (lsp-treemacs--symbol-icon item nil)
+                      :label-form (propertize (gethash "name" item) 'face 'default)
+                      :state treemacs-lsp-symbol-closed-state
+                      :key-form (list (gethash "name" item)
+                                      (gethash "uri" item)
+                                      (gethash "path" item))
+                      :more-properties (:symbol item))
+                   (treemacs-render-node
+                    :icon (lsp-treemacs-deps--icon item nil)
+                    :label-form (propertize (gethash "name" item) 'face 'default)
+                    :state treemacs-lsp-treemacs-deps-closed-state
+                    :key-form (list (gethash "name" item)
+                                    (gethash "uri" item)
+                                    (gethash "path" item))
+                    :more-properties (:dep item))))
+
+(defun lsp-treemacs-deps--root-folders ()
+  (lsp-treemacs-deps-with-jdtls
+    (-mapcat (lambda (root-path)
+               (let ((project-uri (lsp--path-to-uri root-path)))
+                 (->> project-uri
+                      (lsp-send-execute-command "java.project.list")
+                      (--map (--doto it (puthash "projectUri" project-uri it))))))
+             (lsp-session-folders (lsp-session)))))
+
+(treemacs-define-variadic-node lsp-treemacs-deps-list
+  :query-function (lsp-treemacs-deps--root-folders)
+  :render-action
+  (treemacs-render-node
+   :icon (lsp-treemacs-deps--icon item nil)
+   :label-form (propertize (gethash "name" item) 'face 'default)
+   :state treemacs-lsp-treemacs-deps-closed-state
+   :key-form (list (gethash "name" item)
+                   (gethash "uri" item)
+                   (gethash "path" item))
+   :more-properties (:dep item))
+  :root-key-form 'LSP-Java-Dependency)
+
+(defun lsp-treemacs-java-deps-refresh ()
+  "Refresh dependecy list."
+  (interactive)
+  (condition-case _err
+      (let ((inhibit-read-only t))
+        (with-current-buffer lsp-treemacs-deps-buffer-name
+          (treemacs-update-node '(:custom LSP-Java-Dependency) t)
+          (lsp--info "Refresh completed")))
+    (error)))
+
+;;;###autoload
+(defun lsp-treemacs-java-deps-list ()
+  "Display error list."
+  (interactive)
+  (-if-let (buffer (get-buffer lsp-treemacs-deps-buffer-name))
+      (select-window
+       (or (get-buffer-window lsp-treemacs-deps-buffer-name)
+           (display-buffer-in-side-window buffer lsp-treemacs-deps-position-params)))
+    (let* ((buffer (get-buffer-create lsp-treemacs-deps-buffer-name ))
+           (window (display-buffer-in-side-window buffer lsp-treemacs-deps-position-params)))
+      (select-window window)
+      (set-window-dedicated-p window t)
+      (treemacs-initialize)
+      (lsp-treemacs-deps-list-mode t)
+      (setq-local treemacs-default-visit-action 'treemacs-RET-action)
+      (setq-local mode-line-format (propertize "Java Dependencies" 'face 'shadow))
+      (treemacs-LSP-TREEMACS-DEPS-LIST-extension))))
+
+(defun lsp-treemacs--deps-find-children-for-key (node key)
+  (->> node
+       treemacs--get-children-of
+       (-first (lambda (child)
+                 (goto-char (marker-position child))
+                 (equal (treemacs-button-get child :key) key)))))
+
+(defvar lsp-treemacs-deps-list-mode-map
+  (let ((m (make-sparse-keymap)))
+    (define-key m (kbd "r") #'lsp-treemacs-java-deps-refresh)
+    m)
+  "Keymap for `lsp-treemacs-deps-list-mode'.")
+
+(define-minor-mode lsp-treemacs-deps-list-mode ""
+  nil nil nil
+  :keymap lsp-treemacs-deps-list-mode-map
+  :group 'lsp-treeemacs)
+
+;;;###autoload
+(defun lsp-treemacs-java-deps-follow ()
+  (interactive)
+  (lsp-treemacs-deps-with-jdtls
+    (let ((paths (lsp-send-execute-command "java.resolvePath"
+                                           (lsp--buffer-uri))))
+      (select-window
+       (with-current-buffer lsp-treemacs-deps-buffer-name
+         (set-window-point
+          (get-buffer-window)
+          (marker-position
+           (-reduce-from
+            (-lambda (node (&hash "path" "name" "uri"))
+              (unless (treemacs-is-node-expanded? node)
+                (save-excursion
+                  (goto-char (marker-position node))
+                  (funcall (alist-get (treemacs-button-get node :state) treemacs-TAB-actions-config))))
+              (or (lsp-treemacs--deps-find-children-for-key node (list name uri path))
+                  (user-error "Unable to find %s in the dependency tree." (buffer-name))))
+            (treemacs-dom-node->position (treemacs-find-in-dom '(:custom LSP-Java-Dependency)))
+            paths)))
+         (get-buffer-window)))
+      (recenter nil))))
 
 (provide 'lsp-treemacs)
 ;;; lsp-treemacs.el ends here
