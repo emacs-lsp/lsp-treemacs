@@ -564,7 +564,8 @@
 (with-eval-after-load 'winum
   (when (boundp 'winum-ignored-buffers)
     (add-to-list 'winum-ignored-buffers "*LSP Symbols List*")
-    (add-to-list 'winum-ignored-buffers "*LSP Error List*")))
+    (add-to-list 'winum-ignored-buffers "*LSP Error List*")
+    (add-to-list 'winum-ignored-buffers lsp-treemacs-deps-buffer-name)))
 
 (defun lsp-treemacs--expand (root-key)
   (-when-let (root (treemacs-dom-node->position (treemacs-find-in-dom root-key)))
