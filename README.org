@@ -1,13 +1,33 @@
 * Table of Contents                                       :TOC_4_gh:noexport:
 - [[#summary][Summary]]
-- [[#commands][Commands]]
+- [[#views][Views]]
+  - [[#lsp-treemacs-errors-list][lsp-treemacs-errors-list]]
+    - [[#commands][Commands]]
+    - [[#screenshot][Screenshot]]
+  - [[#lsp-treemacs-symbols-list][lsp-treemacs-symbols-list]]
+    - [[#screenshot-1][Screenshot]]
+  - [[#lsp-treemacs-symbols-list-1][lsp-treemacs-symbols-list]]
+    - [[#commands-1][Commands]]
+    - [[#screenshot-2][Screenshot]]
 
 * Summary
- Integration between ~lsp-mode~ and ~treemacs~ .
+  Integration between ~lsp-mode~ and ~treemacs~ .
 
-* Commands
- - ~lsp-treemacs-errors-list~ - displays tree like error list structure.
-   [[file:screenshots/error-list.png]]
- - ~lsp-treemacs-quick-fix~ or press ~x~ when you are in Error List view - offer quickfixes for the error at point.
- - ~lsp-treemacs-symbols-list~ - displays symbols information.
-   [[file:screenshots/symbols-list.gif]]
+* Views
+** lsp-treemacs-errors-list
+   Displays tree like error list structure.
+*** Commands
+*** Screenshot
+    [[file:screenshots/error-list.png]]
+    - ~lsp-treemacs-quick-fix~ or press ~x~ when you are in Error List view - offer quickfixes for the error at point.
+** lsp-treemacs-symbols-list
+   Displays symbols information.
+*** Screenshot
+    [[file:screenshots/symbols-list.gif]]
+** lsp-treemacs-symbols-list
+   Browse java dependencies, namespaces, files, etc.
+*** Commands
+    - ~lsp-treemacs-java-deps-follow~ - select the current editor in the dependency
+    - ~lsp-treemacs-java-deps-refresh~ - refresh the view. Bound to ~r~.
+*** Screenshot
+    [[file:screenshots/dependencies.gif]]
