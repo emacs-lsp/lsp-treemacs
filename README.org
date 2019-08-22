@@ -6,7 +6,7 @@
     - [[#screenshot][Screenshot]]
   - [[#lsp-treemacs-symbols-list][lsp-treemacs-symbols-list]]
     - [[#screenshot-1][Screenshot]]
-  - [[#lsp-treemacs-symbols-list-1][lsp-treemacs-symbols-list]]
+  - [[#lsp-treemacs-deps-list][lsp-treemacs-deps-list]]
     - [[#commands-1][Commands]]
     - [[#screenshot-2][Screenshot]]
 
@@ -24,7 +24,7 @@
    Displays symbols information.
 *** Screenshot
     [[file:screenshots/symbols-list.gif]]
-** lsp-treemacs-symbols-list
+** lsp-treemacs-deps-list
    Browse java dependencies, namespaces, files, etc.
 *** Commands
     - ~lsp-treemacs-java-deps-follow~ - select the current editor in the dependency
