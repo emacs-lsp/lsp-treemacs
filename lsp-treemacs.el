@@ -800,6 +800,56 @@
          (get-buffer-window)))
       (recenter nil))))
 
+(defun lsp-treemacs--hierarchy ()
+  (with-current-buffer "hello.cpp"
+    (list (lsp-request "textDocument/typeHierarchy"
+                       (-> (lsp--text-document-position-params)
+                           (plist-put :direction 0)
+                           (plist-put :resolve 100))))))
+
+(defvar lsp-tree)
+
+(treemacs-define-expandable-node lsp-hierarchy-symbol
+  :icon-open-form (lsp-treemacs--symbol-icon (treemacs-button-get node :symbol) t)
+  :icon-closed-form (lsp-treemacs--symbol-icon (treemacs-button-get node :symbol) nil)
+  :query-function (append (gethash "children" (treemacs-button-get node :symbol)) nil)
+  :ret-action 'lsp-treemacs-goto-symbol
+  :render-action
+  (treemacs-render-node
+   :icon (lsp-treemacs--symbol-icon item nil)
+   :label-form (propertize (gethash "name" item) 'face 'default)
+   :state treemacs-lsp-symbol-closed-state
+   :key-form (gethash "name" item)
+   :more-properties (:symbol item)))
+
+(treemacs-define-variadic-node lsp-class-hierarchy
+  :query-function (lsp-treemacs--hierarchy)
+  :render-action
+  (treemacs-render-node
+   :icon (lsp-treemacs-deps--icon item nil)
+   :label-form (propertize (gethash "name" item) 'face 'default)
+   :state treemacs-lsp-hierarchy-symbol-closed-state
+   :key-form (list (gethash "name" item)
+                   (gethash "uri" item))
+   :more-properties (:symbol item))
+  :root-key-form 'LSP-Java-Dependency)
+
+(defun lsp-treemacs-type-hierarchy ()
+  "Display type hierarchy."
+  (interactive)
+
+  (let* ((buffer (get-buffer-create "*LSP Type Hierarchy*"))
+         (window (display-buffer-in-side-window buffer '((side . bottom)))))
+    (select-window window)
+    (set-window-dedicated-p window t)
+    (treemacs-initialize)
+    ;; (lsp-treemacs-error-list-mode 1)
+
+    (setq-local treemacs-default-visit-action 'treemacs-RET-action)
+
+    (treemacs-LSP-CLASS-HIERARCHY-extension)
+    (setq-local mode-line-format (propertize "LSP Hierarchy View" 'face 'shadow))))
+
 (provide 'lsp-treemacs)
 ;;; lsp-treemacs.el ends here
 
