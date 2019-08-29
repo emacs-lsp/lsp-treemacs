@@ -43,10 +43,15 @@
   :tag "Language Server")
 
 (defvar lsp-treemacs-deps-position-params
-  '((side . left)
+  `((side . ,treemacs-position)
     (slot . 1)
-    (window-width . 35))
+    (window-width . ,treemacs-width))
   "The params which will be used by `display-buffer-in-side-window'.")
+
+(defvar lsp-treemacs-symbols-position-params
+  `((side . ,treemacs-position)
+    (slot . 2)
+    (window-width . ,treemacs-width)))
 
 (defface lsp-treemacs-project-root-error
   '((t :inherit font-lock-keyword-face))
@@ -579,12 +584,11 @@
 (defun lsp-treemacs-symbols ()
   "Show symbols view."
   (interactive)
-  (let ((original-buffer (current-buffer))
-        (position '((side . left) (slot . 2))))
+  (let ((original-buffer (current-buffer)))
     (if-let (buf (get-buffer "*LSP Symbols List*"))
-        (select-window (display-buffer-in-side-window buf position))
+        (select-window (display-buffer-in-side-window buf lsp-treemacs-symbols-position-params))
       (let* ((buf (get-buffer-create "*LSP Symbols List*"))
-             (window (display-buffer-in-side-window buf position)))
+             (window (display-buffer-in-side-window buf lsp-treemacs-symbols-position-params)))
         (select-window window)
         (set-window-dedicated-p window t)
         (treemacs-initialize)
