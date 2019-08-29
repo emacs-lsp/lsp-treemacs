@@ -331,6 +331,9 @@
   :keymap lsp-treemacs-error-list-mode-map
   :group 'lsp-treeemacs)
 
+(define-derived-mode lsp-treemacs-errors-mode treemacs-mode "LSP Errors View"
+  "A major mode for displaying LSP Errors.")
+
 ;;;###autoload
 (defun lsp-treemacs-errors-list ()
   "Display error list."
@@ -345,12 +348,12 @@
       (select-window window)
       (set-window-dedicated-p window t)
       (treemacs-initialize)
+      (lsp-treemacs-errors-mode)
       (lsp-treemacs-error-list-mode 1)
 
       (setq-local treemacs-default-visit-action 'treemacs-RET-action)
 
       (treemacs-LSP-ERROR-LIST-extension)
-      (setq-local mode-line-format (propertize "LSP Errors View" 'face 'shadow))
 
       (add-hook 'lsp-diagnostics-updated-hook #'lsp-treemacs--after-diagnostics)
       (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-buffer nil t))))
@@ -580,6 +583,9 @@
 (defun lsp-treemacs--kill-symbols-buffer ()
   (and lsp-treemacs--symbols-timer (cancel-timer lsp-treemacs--symbols-timer)))
 
+(define-derived-mode lsp-treemacs-symbols-mode treemacs-mode "LSP Symbols View"
+  "A major mode for displaying LSP Symbols.")
+
 ;;;###autoload
 (defun lsp-treemacs-symbols ()
   "Show symbols view."
@@ -592,10 +598,10 @@
         (select-window window)
         (set-window-dedicated-p window t)
         (treemacs-initialize)
+        (lsp-treemacs-symbols-mode)
         (setq-local treemacs-default-visit-action 'treemacs-RET-action)
         (treemacs-LSP-SYMBOLS-LIST-extension)
         (setq lsp-treemacs--symbols-timer (run-at-time 0 1.0 #'lsp-treemacs--update))
-        (setq-local mode-line-format (propertize "LSP Symbols View" 'face 'shadow))
         (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-symbols-buffer nil t)))
     (with-current-buffer original-buffer (lsp-treemacs--update))))
 
@@ -744,6 +750,9 @@
           (lsp--info "Refresh completed")))
     (error)))
 
+(define-derived-mode lsp-treemacs-java-deps-mode treemacs-mode "Java Dependencies"
+  "A major mode for displaying Java Dependencies.")
+
 ;;;###autoload
 (defun lsp-treemacs-java-deps-list ()
   "Display error list."
@@ -757,9 +766,9 @@
       (select-window window)
       (set-window-dedicated-p window t)
       (treemacs-initialize)
+      (lsp-treemacs-java-deps-mode)
       (lsp-treemacs-deps-list-mode t)
       (setq-local treemacs-default-visit-action 'treemacs-RET-action)
-      (setq-local mode-line-format (propertize "Java Dependencies" 'face 'shadow))
       (treemacs-LSP-TREEMACS-DEPS-LIST-extension))))
 
 (defun lsp-treemacs--deps-find-children-for-key (node key)
