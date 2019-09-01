@@ -33,6 +33,7 @@
 (require 'treemacs-icons)
 
 (require 'lsp-mode)
+(require 'lsp-treemacs-tvp)
 
 (defconst lsp-treemacs-deps-buffer-name "*Java Dependency List*")
 
