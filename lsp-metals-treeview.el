@@ -103,6 +103,11 @@ which hides the buffers within the buffer list in Emacs.")
 
 (defconst lsp--metals-treeview-metadata-key "metals-treeview"
   "Metadata key to store treeview data struct within workspace")
+
+(defconst lsp--metals-treeview-metals-server-id 'metals
+  "Server id metals lsp client should be registered from within
+lsp-mode.")
+
 ;;
 ;; Treemacs doesn't support a unique key - :-key-form isn't actually defined as
 ;; being unique and you cannot search by this key - only by path. Since Metals
@@ -166,7 +171,7 @@ the WORKSPACE."
   "Add the BUFFER to the list of treeview buffers associated with
 the WORKSPACE."
   (-when-let* ((state (lsp--metals-treeview-get-data workspace))
-               (buffers (append (lsp--metals-treeview-data-buffers state) (list buffer))))
+               (buffers (push buffer (lsp--metals-treeview-data-buffers state))))
     (setf (lsp--metals-treeview-data-buffers state) buffers)))
 
 (defun lsp--metals-treeview-remove-buffers (workspace)
@@ -242,12 +247,11 @@ frame. Check to see if any of these buffers are metals
 treeview buffers and if so return the buffers."
   ;; retrieve any treeview buffers that are visible
   (->> (window-list (selected-frame))
-       (-map (lambda (window)
+       (-keep (lambda (window)
                (let ((buffer (window-buffer window)))
                  (when (s-starts-with? lsp--metals-treeview-buffer-prefix
                                        (buffer-name buffer))
-                   buffer))))
-       (remove nil)))
+                   buffer))))))
 
 (defun lsp--metals-treeview-visible? (workspace)
   "Is the metals treeview associated with the WORKSPACE currently visible?"
@@ -271,11 +275,10 @@ but not visible?"
   "Return visibility status of metals treeview associated
 with WORKSPACE. Return 'visible, 'hidden, 'none depending on state of
 treeview."
-  (if (lsp--metals-treeview-visible? workspace)
-      'visible
-    (if (lsp--metals-treeview-exists? workspace)
-        'hidden
-      'none)))
+  (cond
+   ((lsp--metals-treeview-visible? workspace) 'visible)
+   ((lsp--metals-treeview-exists? workspace)  'hidden)
+   (t 'none)))
 
 (defun lsp--metals-treeview-show-window (workspace &optional select-window?)
   "Show metals treeview window associated with WORKSPACE and
@@ -807,20 +810,14 @@ that this will be sent during initial connection."
                                            :json-false)))))))
     (setf (lsp--client-custom-capabilities metals-client) custom-capabilities)))
 
-
-(defun lsp-metals-treeview-reveal ()
-  (interactive)
-  (let (workspace (car (lsp-workspaces)))
-    (lsp-log "response from treeViewReveal %s"
-             (json-encode
-              (lsp-request "metals/treeViewReveal" (lsp--text-document-position-params))))))
-
 (defun lsp-metals-treeview (&optional workspace)
   "Display the Metals treeview window for the WORKSPACE (optional).  If
 WORKSPACE is not specified obtain the current workspace for the file in
 the current buffer."
   (interactive)
-  (-if-let* ((workspace (or workspace (car (lsp-workspaces)))))
+  (-if-let* ((workspace
+              (or workspace
+                  (lsp-find-workspace lsp--metals-treeview-metals-server-id nil))))
       (lsp--metals-treeview-show-window workspace t)
     (message "Current buffer is not within Metals workspace")))
 
@@ -832,7 +829,7 @@ to Metals to indicate we want treeview messages and wire up notification
 handlers."
   (interactive)
   (with-eval-after-load 'lsp-metals
-    (let ((metals-client (ht-get lsp-clients 'metals)))
+    (let ((metals-client (ht-get lsp-clients lsp--metals-treeview-metals-server-id)))
       (lsp--metals-treeview-add-notification-handlers metals-client)
       (lsp--metals-treeview-add-custom-capabilities metals-client enable))))
 
