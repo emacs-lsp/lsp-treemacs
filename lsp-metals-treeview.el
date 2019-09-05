@@ -63,6 +63,11 @@ lsp-metals-treeview to display the treeview explicitly."
   :group 'lsp-metals-treeview
   :type 'boolean)
 
+(defcustom lsp-metals-treeview-workspace-switch-delay 0.2
+  "Delay in seconds after buffer-list-update-hook is called before
+triggering a switch of treeview when navigating between buffers in
+different workspaces.")
+
 (cl-defstruct lsp--metals-treeview-data
   (views nil)
   (buffers nil))
@@ -115,21 +120,33 @@ will hold the workspace associated with the instance.")
 is currently being displayed and whether we need to show
 an alternative workspace's treeview."
   (with-current-buffer (current-buffer)
-    (-if-let ((workspaces (lsp-workspaces)))
+    (-if-let (workspaces (lsp-workspaces))
         (progn
-          (lsp-log "we have workspaces")
           (when (and lsp--metals-treeview-active-view-workspace
                      (not (member lsp--metals-treeview-active-view-workspace
                                   workspaces)))
-            ;; hide current treeview
+            ;; hide current treeview and show new window associated with
+            ;; the current workspace of file in buffer.
             (lsp--metals-treeview-hide-window lsp--metals-treeview-active-view-workspace)
-            (lsp--metals-treeview-show-window (car workspaces)))))
-    (lsp-log "no workspaces")))
+            (lsp--metals-treeview-show-window (car workspaces)))))))
 
-;; (defun lsp--metals-test-add-buffer-switch-hook ()
-;;   (interactive)
-;;   (add-hook 'buffer-list-update-hook #'lsp--metals-treeview-buffer-changed))
+(defun lsp--metals-treeview-buffer-list-update ()
+  (run-with-idle-timer lsp-metals-treeview-workspace-switch-delay
+                       nil
+                       #'lsp--metals-treeview-buffer-changed))
 
+(defun lsp--metals-treeview-add-workspace-switch-hook ()
+  "Add a buffer-list-update-hook to hide/show the active treeview
+(if currently displayed) when the user switches buffers that are
+within another workspace."
+  (add-hook 'buffer-list-update-hook
+            #'lsp--metals-treeview-buffer-list-update))
+
+(defun lsp--metals-treeview-remove-workspace-switch-hook ()
+  "Remove the buffer-list-update-hook for switching treeview between
+workspaces."
+  (remove-hook 'buffer-list-update-hook
+               #'lsp--metals-treeview-buffer-list-update))
 
 (defun lsp--metals-treeview-log (format &rest args)
   "Log treeview tracing/debug messages to the lsp-log"
@@ -215,7 +232,9 @@ be live in the background."
                cur-workspace lsp--metals-view-id nil))
             (delete-window (get-buffer-window buffer)))
           (lsp--metals-treeview-get-buffers cur-workspace))
-    (setq lsp--metals-treeview-active-view-workspace nil)))
+    (setq lsp--metals-treeview-active-view-workspace nil)
+    ;; Only keep this treeview switching hook live when absolutely necessary
+    (lsp--metals-treeview-remove-workspace-switch-hook)))
 
 (defun lsp--metals-treeview-get-visible-buffers ()
   "Retrieve buffers associated with the current selected
@@ -268,9 +287,9 @@ then show the window."
          (views (if view-data
                     (lsp--metals-treeview-data-views view-data)
                   nil)))
-    (if (or (eq 'hidden visibility) (eq 'none visibility))
-        (lsp--metals-show-metals-views workspace
-                                       views 0 select-window?))))
+    (when (or (eq 'hidden visibility) (eq 'none visibility))
+      (lsp--metals-show-metals-views workspace
+                                     views 0 select-window?))))
 
 (defun lsp--metals-treeview-delete-window (&optional workspace workspace-shutdown?)
   "Delete the metals treeview window associated with the WORKSPACE.
@@ -296,6 +315,8 @@ t."
           (lsp--metals-treeview-get-buffers cur-workspace))
     (lsp--metals-treeview-remove-buffers cur-workspace)
     (setq lsp--metals-treeview-active-view-workspace nil)
+    ;; Only keep this treeview switching hook live when absolutely necessary.
+    (lsp--metals-treeview-remove-workspace-switch-hook)
     (remove-hook 'lsp-after-uninitialized-hook #'lsp--metals-treeview-delete-window)))
 
 (defun lsp--metals-treeview-on-workspace-shutdown (workspace)
@@ -412,6 +433,10 @@ relative to the others. "
           (lsp--metals-treeview-select-window workspace))
 
         (setq lsp--metals-treeview-active-view-workspace workspace)
+
+        ;; When user switches between files in workspaces automatically switch
+        ;; the treeview to the appropriate one.
+        (lsp--metals-treeview-add-workspace-switch-hook)
         
         ;; Add hook to close our treeview when the workspace is shutdown.
         (add-hook 'lsp-after-uninitialized-hook #'lsp--metals-treeview-on-workspace-shutdown))
