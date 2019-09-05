@@ -384,6 +384,10 @@ window by POSITION and is of the form '((side left))."
             ;; When closing other windows after splitting, prevent our treeview closing.
             (set-window-parameter window 'no-delete-other-windows t)
             (lsp-metals-treeview-mode 1)
+
+            ;; Support for link-hint package with default visit action.
+            (setq-local treemacs-default-visit-action 'treemacs-RET-action)
+            
             ;; open root of tree after initialisation.
             (treemacs-expand-metals-root)))))))
 
