@@ -170,9 +170,8 @@ the WORKSPACE."
 (defun lsp--metals-treeview-add-buffer (workspace buffer)
   "Add the BUFFER to the list of treeview buffers associated with
 the WORKSPACE."
-  (-when-let* ((state (lsp--metals-treeview-get-data workspace))
-               (buffers (push buffer (lsp--metals-treeview-data-buffers state))))
-    (setf (lsp--metals-treeview-data-buffers state) buffers)))
+  (-when-let (state (lsp--metals-treeview-get-data workspace))
+    (push buffer (lsp--metals-treeview-data-buffers state))))
 
 (defun lsp--metals-treeview-remove-buffers (workspace)
   "Clear the buffers stored within treeview state data in
