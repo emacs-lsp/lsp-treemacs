@@ -39,6 +39,12 @@
 ;; a simple starting point to test the treeview with metals and we can evolve
 ;; to a Hydra like interface to provide a richer keyboard experience in future.
 ;;
+;; Example of use-package initialisation to enable Metals Treeview
+;;  (use-package lsp-treemacs
+;;    :config
+;;    (lsp-metals-treeview-enable t)
+;;    (setq lsp-metals-treeview-show-when-views-received t))
+;; 
 
 ;;; Code:
 
