@@ -657,19 +657,20 @@
 
 (defun lsp-treemacs-deps--get-children (dep)
   (lsp-treemacs-deps-with-jdtls
-    (-let (((&hash "projectUri" project-uri "rootPath" root-path "path" "kind" "name") dep))
+    (-let* (((&hash "projectUri" project-uri "rootPath" root-path "path" "kind" "name" "uri") dep)
+            (project-uri (if (eq kind 2) uri project-uri)))
       (unless (or (= kind 6)
                   (= kind 8))
         (->> (lsp-send-execute-command
               "java.getPackageData"
-              (vector (ht ("kind"  kind)
-                          ("path"  (unless (eq kind 2)
-                                     (if (= 5 kind)
-                                         name
-                                       path)))
+              (vector (ht ("kind" kind)
+                          ("path" (unless (eq kind 2)
+                                    (if (= 5 kind)
+                                        name
+                                      path)))
                           ("rootPath" (unless (eq kind 2)
                                         (or root-path path)))
-                          ("projectUri"  project-uri))))
+                          ("projectUri" project-uri))))
              (-mapcat (lambda (inner-dep)
                         (puthash "projectUri" project-uri inner-dep)
                         (when (= kind 4)
