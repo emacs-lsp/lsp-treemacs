@@ -422,10 +422,7 @@
     (concat
      (if (seq-empty-p children)
          "   "
-       (treemacs-get-icon-value
-        (if expanded 'expanded 'collapsed)
-        nil
-        lsp-treemacs-theme))
+       (if expanded  " ▾ " " ▸ "))
      (treemacs-get-icon-value
       (cl-case kind
         (1 'document)
@@ -642,10 +639,7 @@
   "Get the symbol for the the kind."
   (-let (((&hash "uri" "name" "kind" "entryKind" entry-kind) dep))
     (concat
-     (treemacs-get-icon-value
-      (if expanded 'expanded 'collapsed)
-      nil
-      lsp-treemacs-theme)
+     (if expanded  " ▾ " " ▸ ")
      (if (or (= kind 8)
              (= kind 6))
          (treemacs-icon-for-file uri)
