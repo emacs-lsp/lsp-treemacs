@@ -826,7 +826,8 @@ the current buffer."
   (interactive)
   (-if-let* ((workspace
               (or workspace
-                  (lsp-find-workspace lsp-metals-treeview--metals-server-id nil))))
+                  (lsp-find-workspace lsp-metals-treeview--metals-server-id
+                                      (buffer-file-name)))))
       (lsp-metals-treeview--show-window workspace t)
     (message "Current buffer is not within Metals workspace")))
 
