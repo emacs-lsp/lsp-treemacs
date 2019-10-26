@@ -9,6 +9,9 @@
   - [[#lsp-treemacs-deps-list][lsp-treemacs-deps-list]]
     - [[#commands-1][Commands]]
     - [[#screenshot-2][Screenshot]]
+  - [[lsp-metals-treeview]]
+    - [[Metals Commands][Commands]]
+    - [[Metals Screenshot][Screenshot]]
 
 * Summary
   Integration between ~lsp-mode~ and ~treemacs~ .
@@ -31,3 +34,50 @@
     - ~lsp-treemacs-java-deps-refresh~ - refresh the view. Bound to ~r~.
 *** Screenshot
     [[file:screenshots/dependencies.gif]]
+** lsp-metals-treeview
+Support for Scala Metals treeview. The treeview is disabled by default in order
+to enable the treeview use one of the following configuration approaches. 
+If you are using use-package:
+#+BEGIN_SRC elisp
+
+(use-package lsp-treemacs
+  :config
+  (lsp-metals-treeview-enable t)
+  (setq lsp-metals-treeview-show-when-views-received t))
+
+#+END_SRC
+
+lsp-metals-treeview-show-when-views-received when true will automatically
+display the treeview when Metals has initialised the project and sent the
+initial top level treeview information. If you wish to keep the tree hidden and
+show it explicitly via a command or a bound key leave the variable false
+(default) and show the treeview using M-x lsp-metals-treeview.
+
+Alternatively if you're not using use-package:
+
+#+BEGIN_SRC elisp
+
+(require 'lsp-metals-treeview)
+(lsp-metals-treeview-enable t)
+(setq lsp-metals-treeview-show-when-views-received t)
+
+#+END_SRC
+
+The metals can be displayed at anytime by using M-x lsp-metals-treeview.
+
+To enable logging of metals treeview actions/responses use the variable
+lsp-metals-treeview-logging (boolean). All messages will be logged to the lsp
+logging buffer.
+
+*** <<Metals Commands>>Commands
+q - when the treeview has focus it can be hidden using the q key. To show the
+tree use M-x lsp-metals-treeview or bind this function to a key.
+
+lsp-shutdown-workspace will automatically close the treeview associated with the
+current file buffer.
+
+When switching files the treeview will switch to the treeview associated with
+the new workspace.
+
+*** <<Metals Screenshot>>Screenshot
+[[file:screenshots/metals-treeview.gif]]
