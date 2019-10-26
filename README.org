@@ -9,9 +9,9 @@
   - [[#lsp-treemacs-deps-list][lsp-treemacs-deps-list]]
     - [[#commands-1][Commands]]
     - [[#screenshot-2][Screenshot]]
-  - [[lsp-metals-treeview]]
-    - [[Metals Commands][Commands]]
-    - [[Metals Screenshot][Screenshot]]
+  - [[#lsp-metals-treeview][lsp-metals-treeview]]
+    - [[#commands-2][Commands]]
+    - [[#screenshot-3][Screenshot]]
 
 * Summary
   Integration between ~lsp-mode~ and ~treemacs~ .
@@ -69,7 +69,7 @@ To enable logging of metals treeview actions/responses use the variable
 lsp-metals-treeview-logging (boolean). All messages will be logged to the lsp
 logging buffer.
 
-*** <<Metals Commands>>Commands
+*** Commands
 q - when the treeview has focus it can be hidden using the q key. To show the
 tree use M-x lsp-metals-treeview or bind this function to a key.
 
@@ -79,5 +79,5 @@ current file buffer.
 When switching files the treeview will switch to the treeview associated with
 the new workspace.
 
-*** <<Metals Screenshot>>Screenshot
+*** Screenshot
 [[file:screenshots/metals-treeview.gif]]
