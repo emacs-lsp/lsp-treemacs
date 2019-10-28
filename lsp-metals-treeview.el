@@ -44,7 +44,7 @@
 ;;    :config
 ;;    (lsp-metals-treeview-enable t)
 ;;    (setq lsp-metals-treeview-show-when-views-received t))
-;; 
+;;
 
 ;;; Code:
 
@@ -55,6 +55,7 @@
 (require 'pcase)
 (require 'treemacs)
 (require 'lsp-mode)
+(require 'lsp-treemacs)
 
 
 (defcustom lsp-metals-treeview-show-when-views-received nil
