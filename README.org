@@ -14,7 +14,7 @@
     - [[#screenshot-3][Screenshot]]
 
 * Summary
-  Integration between ~lsp-mode~ and ~treemacs~ .
+  Integration between [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]] and [[https://github.com/Alexander-Miller/treemacs][treemacs]] .
 
 * Views
 ** lsp-treemacs-errors-list
