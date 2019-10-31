@@ -352,6 +352,7 @@
       (lsp-treemacs-error-list-mode 1)
 
       (setq-local treemacs-default-visit-action 'treemacs-RET-action)
+      (setq-local treemacs-space-between-root-nodes nil)
 
       (treemacs-LSP-ERROR-LIST-extension)
 
@@ -597,6 +598,7 @@
         (treemacs-initialize)
         (lsp-treemacs-symbols-mode)
         (setq-local treemacs-default-visit-action 'treemacs-RET-action)
+        (setq-local treemacs-space-between-root-nodes nil)
         (treemacs-LSP-SYMBOLS-LIST-extension)
         (setq lsp-treemacs--symbols-timer (run-at-time 0 1.0 #'lsp-treemacs--update))
         (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-symbols-buffer nil t)))
@@ -763,7 +765,10 @@
       (treemacs-initialize)
       (lsp-treemacs-java-deps-mode)
       (lsp-treemacs-deps-list-mode t)
+
+      (setq-local treemacs-space-between-root-nodes nil)
       (setq-local treemacs-default-visit-action 'treemacs-RET-action)
+
       (treemacs-LSP-TREEMACS-DEPS-LIST-extension))))
 
 (defun lsp-treemacs--deps-find-children-for-key (node key)

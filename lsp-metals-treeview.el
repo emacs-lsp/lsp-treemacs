@@ -144,7 +144,7 @@ an alternative workspace's treeview."
                lsp-metals-treeview--active-view-workspace
                (not (member lsp-metals-treeview--active-view-workspace
                             (lsp-workspaces))))
-      
+
       ;; hide current treeview and show new window associated with
       ;; the current workspace of file in buffer.
       (lsp-metals-treeview--hide-window lsp-metals-treeview--active-view-workspace)
@@ -323,7 +323,7 @@ t."
             ;; not initialised.
             (when (and lsp-metals-treeview--view-id
                        (not workspace-shutdown?)
-                       (equal 'initialized (lsp--workspace-status cur-workspace))) 
+                       (equal 'initialized (lsp--workspace-status cur-workspace)))
               (lsp-metals-treeview--send-visibility-did-change
                lsp-metals-treeview--current-workspace
                lsp-metals-treeview--view-id
@@ -378,7 +378,7 @@ window by POSITION and is of the form '((side left))."
           (set-window-dedicated-p (selected-window) t)
           ;; When closing other windows after splitting, prevent our treeview closing.
           (set-window-parameter (selected-window) 'no-delete-other-windows t))
-          
+
       (let* ((buffer (get-buffer-create buffer-name))
              (window (display-buffer-in-side-window buffer position)))
 
@@ -386,22 +386,23 @@ window by POSITION and is of the form '((side left))."
           (with-selected-window window
             (set-window-dedicated-p window t)
             (treemacs-initialize)
-            
+
             (setq-local lsp-metals-treeview--current-workspace workspace)
             (setq-local lsp-metals-treeview--view-id view-id)
             (treemacs-METALS-ROOT-extension)
             (setq-local mode-line-format (lsp-metals-treeview--view-name view-id))
-            
+
             ;; Add buffer to list of treeview buffers associated with this workspace.
             (lsp-metals-treeview--add-buffer workspace buffer)
-            
+
             ;; When closing other windows after splitting, prevent our treeview closing.
             (set-window-parameter window 'no-delete-other-windows t)
             (lsp-metals-treeview-mode 1)
 
             ;; Support for link-hint package with default visit action.
             (setq-local treemacs-default-visit-action 'treemacs-RET-action)
-            
+            (setq-local treemacs-space-between-root-nodes nil)
+
             ;; open root of tree after initialisation.
             (treemacs-expand-metals-root)))))))
 
@@ -446,7 +447,7 @@ relative to the others. "
   (if (not (null views))
       (progn
         (lsp-metals-treeview--display-views workspace views slot)
-        
+
         (-when-let (buffer (lsp-metals-treeview--get-waiting-message-buffer workspace))
           (kill-buffer buffer))
 
@@ -458,10 +459,10 @@ relative to the others. "
         ;; When user switches between files in workspaces automatically switch
         ;; the treeview to the appropriate one.
         (lsp-metals-treeview--add-workspace-switch-hook)
-        
+
         ;; Add hook to close our treeview when the workspace is shutdown.
         (add-hook 'lsp-after-uninitialized-hook #'lsp-metals-treeview--on-workspace-shutdown))
-        
+
     ;; No views are available - show temp message.
     (lsp-metals-treeview--show-waiting-message workspace (lsp-metals-treeview--position slot))))
 
@@ -470,12 +471,12 @@ relative to the others. "
 us a new set of views."
   (lsp-metals-treeview--log "Received metals views for workspace %s"
                             (lsp--workspace-root workspace))
-  
+
   ;; Close any current treeview window for this workspace, so we can
   ;; recreate it.
   (when (lsp-metals-treeview--exists? workspace)
     (lsp-metals-treeview--delete-window workspace))
-  
+
   (let ((state (make-lsp-metals-treeview--data
                 :views (mapcar
                         (lambda (node)
@@ -483,7 +484,7 @@ us a new set of views."
                             (:view-name  .  ,(replace-regexp-in-string "metals" ""
                                                                        (ht-get node "viewId")))))
                         (ht-get params "nodes")))))
-    
+
     (lsp-metals-treeview--log-state state)
     (lsp-metals-treeview--set-data workspace state)
 
@@ -530,7 +531,7 @@ cannot be found in the tree make sure we cleanup the cache and remove it."
             (ht-set (treemacs-button-get tree-node :node)
                     "label"
                     (ht-get node "label"))
-            
+
             ;; Currently the only way to re-render the label of an item is
             ;; for the parent to call render-node on its children. So
             ;; we update the parent of the node we're changing.
@@ -564,7 +565,7 @@ workspace of the project."
   (lsp-metals-treeview--log "In lsp-metals-treeview--did-change %s\n%s"
                             (lsp--workspace-root workspace)
                             (json-encode params))
-  
+
   (if (lsp-metals-treeview--views-update-message? params)
       (lsp-metals-treeview--refresh workspace params)
     (lsp-metals-treeview--changed workspace params)))
@@ -658,7 +659,7 @@ expandable node. If the node isn't expandable for now do not show an icon. "
          (if open-form? 'expanded 'collapsed)
          nil
          lsp-treemacs-theme)
-        
+
       ;; leaf node without an icon
       (treemacs-as-icon "   " 'face 'font-lock-string-face))))
 
@@ -717,7 +718,7 @@ collapsed or expanded."
   (progn
     ;; root icon
     (treemacs-create-icon :file "logo.png"        :extensions (root)       :fallback "")
-    
+
     ;; symbol icons
     (treemacs-create-icon :file "method.png"      :extensions ("method"))
     (treemacs-create-icon :file "class.png"       :extensions ("class"))
@@ -734,7 +735,7 @@ collapsed or expanded."
 ;; replace lsp-metals-treeview--state to return treemacs-metals-node-closed-state
 ;;
 (treemacs-define-leaf-node metals-leaf 'dynamic-icon
-  
+
   :ret-action #'lsp-metals-treeview--exec-node-action
   :mouse1-action (lambda (&rest args)
                    (interactive)
@@ -755,7 +756,7 @@ collapsed or expanded."
                    (treemacs-button-get (treemacs-node-at-point) :node) t)
   :icon-closed-form (lsp-metals-treeview--icon
                      (treemacs-button-get (treemacs-node-at-point) :node) nil)
-  
+
   :query-function (lsp-metals-treeview--get-children-current-node)
 
   :ret-action 'lsp-metals-treeview--exec-node-action
@@ -764,7 +765,7 @@ collapsed or expanded."
                  (treemacs-button-get node :node) nil)
   :after-collapse (lsp-metals-treeview--on-node-collapsed
                    (treemacs-button-get node :node) t)
-  
+
   :render-action
   (treemacs-render-node
    :icon (lsp-metals-treeview--icon item nil)
