@@ -659,27 +659,27 @@
 
 (defun lsp-treemacs-deps--get-children (dep)
   (lsp-treemacs-deps-with-jdtls
-    (-let* (((&hash "projectUri" project-uri "rootPath" root-path "path" "kind" "name" "uri") dep)
-            (project-uri (if (eq kind 2) uri project-uri)))
-      (unless (or (= kind 6)
-                  (= kind 8))
-        (->> (lsp-send-execute-command
-              "java.getPackageData"
-              (vector (ht ("kind" kind)
-                          ("path" (unless (eq kind 2)
-                                    (if (= 5 kind)
-                                        name
-                                      path)))
-                          ("rootPath" (unless (eq kind 2)
-                                        (or root-path path)))
-                          ("projectUri" project-uri))))
-             (-mapcat (lambda (inner-dep)
-                        (puthash "projectUri" project-uri inner-dep)
-                        (when (= kind 4)
-                          (puthash "rootPath" path inner-dep))
-                        (if (eq (gethash "entryKind" inner-dep) 3)
-                            (lsp-treemacs-deps--get-children inner-dep)
-                          (list inner-dep)))))))))
+   (-let* (((&hash "projectUri" project-uri "rootPath" root-path "path" "kind" "name" "uri") dep)
+           (project-uri (if (eq kind 2) uri project-uri)))
+     (unless (or (= kind 6)
+                 (= kind 8))
+       (->> (lsp-send-execute-command
+             "java.getPackageData"
+             (vector (ht ("kind" kind)
+                         ("path" (unless (eq kind 2)
+                                   (if (= 5 kind)
+                                       name
+                                     path)))
+                         ("rootPath" (unless (eq kind 2)
+                                       (or root-path path)))
+                         ("projectUri" project-uri))))
+            (-mapcat (lambda (inner-dep)
+                       (puthash "projectUri" project-uri inner-dep)
+                       (when (= kind 4)
+                         (puthash "rootPath" path inner-dep))
+                       (if (eq (gethash "entryKind" inner-dep) 3)
+                           (lsp-treemacs-deps--get-children inner-dep)
+                         (list inner-dep)))))))))
 
 (defun lsp-treemacs-deps--java-file? (dep)
   (-let [(&hash "kind" "entryKind" entry-kind) dep]
@@ -693,8 +693,8 @@
   :query-function (-let (((dep &as &hash "uri") (treemacs-button-get node :dep)))
                     (if (lsp-treemacs-deps--java-file? dep)
                         (lsp-treemacs-deps-with-jdtls
-                          (lsp-request "textDocument/documentSymbol"
-                                       `(:textDocument (:uri ,uri))))
+                         (lsp-request "textDocument/documentSymbol"
+                                      `(:textDocument (:uri ,uri))))
                       (lsp-treemacs-deps--get-children dep)))
   :ret-action 'lsp-treemacs-deps--goto-element
   :render-action (if (lsp-treemacs-deps--java-file? (treemacs-button-get node :dep))
@@ -717,12 +717,12 @@
 
 (defun lsp-treemacs-deps--root-folders ()
   (lsp-treemacs-deps-with-jdtls
-    (-mapcat (lambda (root-path)
-               (let ((project-uri (lsp--path-to-uri root-path)))
-                 (->> project-uri
-                      (lsp-send-execute-command "java.project.list")
-                      (--map (--doto it (puthash "projectUri" project-uri it))))))
-             (lsp-session-folders (lsp-session)))))
+   (-mapcat (lambda (root-path)
+              (let ((project-uri (lsp--path-to-uri root-path)))
+                (->> project-uri
+                     (lsp-send-execute-command "java.project.list")
+                     (--map (--doto it (puthash "projectUri" project-uri it))))))
+            (lsp-session-folders (lsp-session)))))
 
 (treemacs-define-variadic-node lsp-treemacs-deps-list
   :query-function (lsp-treemacs-deps--root-folders)
@@ -793,25 +793,88 @@
 (defun lsp-treemacs-java-deps-follow ()
   (interactive)
   (lsp-treemacs-deps-with-jdtls
-    (let ((paths (lsp-send-execute-command "java.resolvePath"
-                                           (lsp--buffer-uri))))
-      (select-window
-       (with-current-buffer lsp-treemacs-deps-buffer-name
-         (set-window-point
-          (get-buffer-window)
-          (marker-position
-           (-reduce-from
-            (-lambda (node (&hash "path" "name" "uri"))
-              (unless (treemacs-is-node-expanded? node)
-                (save-excursion
-                  (goto-char (marker-position node))
-                  (funcall (alist-get (treemacs-button-get node :state) treemacs-TAB-actions-config))))
-              (or (lsp-treemacs--deps-find-children-for-key node (list name uri path))
-                  (user-error "Unable to find %s in the dependency tree." (buffer-name))))
-            (treemacs-dom-node->position (treemacs-find-in-dom '(:custom LSP-Java-Dependency)))
-            paths)))
-         (get-buffer-window)))
-      (recenter nil))))
+   (let ((paths (lsp-send-execute-command "java.resolvePath"
+                                          (lsp--buffer-uri))))
+     (select-window
+      (with-current-buffer lsp-treemacs-deps-buffer-name
+        (set-window-point
+         (get-buffer-window)
+         (marker-position
+          (-reduce-from
+           (-lambda (node (&hash "path" "name" "uri"))
+             (unless (treemacs-is-node-expanded? node)
+               (save-excursion
+                 (goto-char (marker-position node))
+                 (funcall (alist-get (treemacs-button-get node :state) treemacs-TAB-actions-config))))
+             (or (lsp-treemacs--deps-find-children-for-key node (list name uri path))
+                 (user-error "Unable to find %s in the dependency tree." (buffer-name))))
+           (treemacs-dom-node->position (treemacs-find-in-dom '(:custom LSP-Java-Dependency)))
+           paths)))
+        (get-buffer-window)))
+     (recenter nil))))
+
+
+;; treemacs synchronization
+
+(defun lsp-treemacs--on-folder-remove (project)
+  (lsp-workspace-folders-remove (treemacs-project->path project)))
+
+(defun lsp-treemacs--on-folder-added (project)
+  (lsp-workspace-folders-add (treemacs-project->path project)))
+
+(defun lsp-treemacs--treemacs->lsp ()
+  (let ((lsp-folders (lsp-session-folders (lsp-session)))
+        (treemacs-folders (->> (treemacs-current-workspace)
+                               (treemacs-workspace->projects)
+                               (-map #'treemacs-project->path)
+                               (-map #'lsp-cannonical-file-name))))
+    (seq-do #'lsp-workspace-folders-remove (-difference lsp-folders treemacs-folders))
+    (seq-do #'lsp-workspace-folders-add (-difference treemacs-folders lsp-folders))))
+
+(defun lsp-treemacs--sync-folders (added removed)
+  (let ((treemacs-create-project-functions (remove #'lsp-treemacs--on-folder-added
+                                                   treemacs-create-project-functions))
+        (treemacs-delete-project-functions (remove #'lsp-treemacs--on-folder-remove
+                                                   treemacs-delete-project-functions)))
+    (seq-do (lambda (folder)
+              (when (->> (treemacs-current-workspace)
+                         (treemacs-workspace->projects)
+                         (-none? (lambda (project)
+                                   (f-same? (treemacs-project->path project)
+                                            folder))))
+                (treemacs-add-project-to-workspace folder)))
+            added)
+    (seq-do (lambda (folder)
+              (when-let (project (->> (treemacs-current-workspace)
+                                      (treemacs-workspace->projects)
+                                      (-first (lambda (project)
+                                                (f-same? (treemacs-project->path project)
+                                                         folder)))))
+                (treemacs-do-remove-project-from-workspace project)))
+            removed)))
+
+;;;###autoload
+(define-minor-mode lsp-treemacs-sync-mode
+  "Global minor mode for DAP mode."
+  :init-value nil
+  :group 'dap-mode
+  :global t
+  :require 'dap-mode
+  (cond
+   (lsp-treemacs-sync-mode
+    (add-hook 'treemacs-create-project-functions #'lsp-treemacs--on-folder-added)
+    (add-hook 'treemacs-delete-project-functions #'lsp-treemacs--on-folder-remove)
+    (add-hook 'lsp-workspace-folders-changed-hook #'lsp-treemacs--sync-folders)
+    (add-hook 'treemacs-workspace-edit-hook #'lsp-treemacs--treemacs->lsp)
+    (add-hook 'treemacs-switch-workspace-hook #'lsp-treemacs--treemacs->lsp))
+   (t
+    (remove-hook 'treemacs-create-project-functions #'lsp-treemacs--on-folder-added)
+    (remove-hook 'treemacs-delete-project-functions #'lsp-treemacs--on-folder-remove)
+    (remove-hook 'lsp-workspace-folders-changed-hook #'lsp-treemacs--sync-folders)
+    (remove-hook 'treemacs-workspace-edit-hook #'lsp-treemacs--treemacs->lsp)
+    (remove-hook 'treemacs-switch-workspace-hook #'lsp-treemacs--treemacs->lsp))))
+
+
 
 (provide 'lsp-treemacs)
 ;;; lsp-treemacs.el ends here
