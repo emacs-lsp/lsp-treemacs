@@ -832,26 +832,27 @@
     (seq-do #'lsp-workspace-folders-add (-difference treemacs-folders lsp-folders))))
 
 (defun lsp-treemacs--sync-folders (added removed)
-  (let ((treemacs-create-project-functions (remove #'lsp-treemacs--on-folder-added
-                                                   treemacs-create-project-functions))
-        (treemacs-delete-project-functions (remove #'lsp-treemacs--on-folder-remove
-                                                   treemacs-delete-project-functions)))
-    (seq-do (lambda (folder)
-              (when (->> (treemacs-current-workspace)
-                         (treemacs-workspace->projects)
-                         (-none? (lambda (project)
-                                   (f-same? (treemacs-project->path project)
-                                            folder))))
-                (treemacs-add-project-to-workspace folder)))
-            added)
-    (seq-do (lambda (folder)
-              (when-let (project (->> (treemacs-current-workspace)
-                                      (treemacs-workspace->projects)
-                                      (-first (lambda (project)
-                                                (f-same? (treemacs-project->path project)
-                                                         folder)))))
-                (treemacs-do-remove-project-from-workspace project)))
-            removed)))
+  (when-let (treemacs-workspace (treemacs-current-workspace))
+    (let ((treemacs-create-project-functions (remove #'lsp-treemacs--on-folder-added
+                                                     treemacs-create-project-functions))
+          (treemacs-delete-project-functions (remove #'lsp-treemacs--on-folder-remove
+                                                     treemacs-delete-project-functions)))
+      (seq-do (lambda (folder)
+                (when (->> treemacs-workspace
+                           (treemacs-workspace->projects)
+                           (-none? (lambda (project)
+                                     (f-same? (treemacs-project->path project)
+                                              folder))))
+                  (treemacs-add-project-to-workspace folder)))
+              added)
+      (seq-do (lambda (folder)
+                (when-let (project (->> treemacs-workspace
+                                        (treemacs-workspace->projects)
+                                        (-first (lambda (project)
+                                                  (f-same? (treemacs-project->path project)
+                                                           folder)))))
+                  (treemacs-do-remove-project-from-workspace project)))
+              removed))))
 
 ;;;###autoload
 (define-minor-mode lsp-treemacs-sync-mode
