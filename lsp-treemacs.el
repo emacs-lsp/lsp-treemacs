@@ -36,7 +36,6 @@
 
 (defconst lsp-treemacs-deps-buffer-name "*Java Dependency List*")
 
-
 (defgroup lsp-treemacs nil
   "Language Server Protocol client."
   :group 'tools
@@ -164,12 +163,15 @@
           (1- lsp-treemacs-error-list-severity)))
   (lsp-treemacs--after-diagnostics))
 
+(defun lsp-treemacs--open-file-in-mru (file)
+  (select-window (get-mru-window (selected-frame) nil :not-selected))
+  (find-file file))
+
 (defun lsp-treemacs-open-file (&rest _)
   "Open file."
   (interactive)
   (let ((file (button-get (treemacs-node-at-point) :key)))
-    (select-window (get-mru-window (selected-frame) nil :not-selected))
-    (find-file file)))
+    (lsp-treemacs--open-file-in-mru file)))
 
 (defun lsp-treemacs-open-error (&rest _)
   "Open error."
@@ -553,15 +555,15 @@
   "Goto the symbol at point."
   (interactive)
   (if-let ((symbol-data (-some-> (treemacs-node-at-point)
-                                 (button-get :symbol))))
+                          (button-get :symbol))))
       (with-current-buffer lsp-treemacs--symbols-last-buffer
         (let ((p (lsp--position-to-point (or (-some->> symbol-data
-                                                       (gethash "selectionRange")
-                                                       (gethash "start"))
+                                               (gethash "selectionRange")
+                                               (gethash "start"))
                                              (-some->> symbol-data
-                                                       (gethash "location")
-                                                       (gethash "range")
-                                                       (gethash "start"))
+                                               (gethash "location")
+                                               (gethash "range")
+                                               (gethash "start"))
                                              (error "Unable to go to location")))))
           (pop-to-buffer lsp-treemacs--symbols-last-buffer)
           (goto-char p)))
@@ -605,14 +607,14 @@
     (with-current-buffer original-buffer (lsp-treemacs--update))))
 
 (defun lsp-treemacs--expand-recursively (root)
-  (-map
-   (lambda (btn)
-     (unless (treemacs-is-node-expanded? btn)
-       (save-excursion
+  (save-excursion
+    (-map
+     (lambda (btn)
+       (unless (treemacs-is-node-expanded? btn)
          (goto-char (marker-position btn))
-         (funcall (alist-get (treemacs-button-get btn :state) treemacs-TAB-actions-config))))
-     (lsp-treemacs--expand-recursively btn))
-   (treemacs--get-children-of root)))
+         (funcall (alist-get (treemacs-button-get btn :state) treemacs-TAB-actions-config)))
+       (lsp-treemacs--expand-recursively btn))
+     (treemacs--get-children-of root))))
 
 
 (defmacro lsp-treemacs-deps-with-jdtls (&rest body)
@@ -625,16 +627,14 @@
 
 (defun lsp-treemacs-deps--goto-element (&rest _args)
   (if-let ((dep (-some-> (treemacs-node-at-point)
-                         (button-get :dep))))
-      (--doto (find-file-noselect
-               (or (-some-> (gethash "uri" dep)
-                            (lsp--uri-to-path))
-                   (when (f-exists? (gethash "path" dep))
-                     (gethash "path" dep))
-                   (concat (f-parent (lsp--uri-to-path (gethash "projectUri" dep)))
-                           (gethash "path" dep))))
-        (select-window (get-mru-window nil nil t))
-        (switch-to-buffer it))
+                  (button-get :dep))))
+      (lsp-treemacs--open-file-in-mru
+       (or (-some-> (gethash "uri" dep)
+             (lsp--uri-to-path))
+           (when (f-exists? (gethash "path" dep))
+             (gethash "path" dep))
+           (concat (f-parent (lsp--uri-to-path (gethash "projectUri" dep)))
+                   (gethash "path" dep))))
     (user-error "No element under point.")))
 
 (defun lsp-treemacs-deps--icon (dep expanded)
@@ -659,27 +659,27 @@
 
 (defun lsp-treemacs-deps--get-children (dep)
   (lsp-treemacs-deps-with-jdtls
-   (-let* (((&hash "projectUri" project-uri "rootPath" root-path "path" "kind" "name" "uri") dep)
-           (project-uri (if (eq kind 2) uri project-uri)))
-     (unless (or (= kind 6)
-                 (= kind 8))
-       (->> (lsp-send-execute-command
-             "java.getPackageData"
-             (vector (ht ("kind" kind)
-                         ("path" (unless (eq kind 2)
-                                   (if (= 5 kind)
-                                       name
-                                     path)))
-                         ("rootPath" (unless (eq kind 2)
-                                       (or root-path path)))
-                         ("projectUri" project-uri))))
-            (-mapcat (lambda (inner-dep)
-                       (puthash "projectUri" project-uri inner-dep)
-                       (when (= kind 4)
-                         (puthash "rootPath" path inner-dep))
-                       (if (eq (gethash "entryKind" inner-dep) 3)
-                           (lsp-treemacs-deps--get-children inner-dep)
-                         (list inner-dep)))))))))
+    (-let* (((&hash "projectUri" project-uri "rootPath" root-path "path" "kind" "name" "uri") dep)
+            (project-uri (if (eq kind 2) uri project-uri)))
+      (unless (or (= kind 6)
+                  (= kind 8))
+        (->> (lsp-send-execute-command
+              "java.getPackageData"
+              (vector (ht ("kind" kind)
+                          ("path" (unless (eq kind 2)
+                                    (if (= 5 kind)
+                                        name
+                                      path)))
+                          ("rootPath" (unless (eq kind 2)
+                                        (or root-path path)))
+                          ("projectUri" project-uri))))
+             (-mapcat (lambda (inner-dep)
+                        (puthash "projectUri" project-uri inner-dep)
+                        (when (= kind 4)
+                          (puthash "rootPath" path inner-dep))
+                        (if (eq (gethash "entryKind" inner-dep) 3)
+                            (lsp-treemacs-deps--get-children inner-dep)
+                          (list inner-dep)))))))))
 
 (defun lsp-treemacs-deps--java-file? (dep)
   (-let [(&hash "kind" "entryKind" entry-kind) dep]
@@ -693,8 +693,8 @@
   :query-function (-let (((dep &as &hash "uri") (treemacs-button-get node :dep)))
                     (if (lsp-treemacs-deps--java-file? dep)
                         (lsp-treemacs-deps-with-jdtls
-                         (lsp-request "textDocument/documentSymbol"
-                                      `(:textDocument (:uri ,uri))))
+                          (lsp-request "textDocument/documentSymbol"
+                                       `(:textDocument (:uri ,uri))))
                       (lsp-treemacs-deps--get-children dep)))
   :ret-action 'lsp-treemacs-deps--goto-element
   :render-action (if (lsp-treemacs-deps--java-file? (treemacs-button-get node :dep))
@@ -717,12 +717,12 @@
 
 (defun lsp-treemacs-deps--root-folders ()
   (lsp-treemacs-deps-with-jdtls
-   (-mapcat (lambda (root-path)
-              (let ((project-uri (lsp--path-to-uri root-path)))
-                (->> project-uri
-                     (lsp-send-execute-command "java.project.list")
-                     (--map (--doto it (puthash "projectUri" project-uri it))))))
-            (lsp-session-folders (lsp-session)))))
+    (-mapcat (lambda (root-path)
+               (let ((project-uri (lsp--path-to-uri root-path)))
+                 (->> project-uri
+                      (lsp-send-execute-command "java.project.list")
+                      (--map (--doto it (puthash "projectUri" project-uri it))))))
+             (lsp-session-folders (lsp-session)))))
 
 (treemacs-define-variadic-node lsp-treemacs-deps-list
   :query-function (lsp-treemacs-deps--root-folders)
@@ -793,25 +793,25 @@
 (defun lsp-treemacs-java-deps-follow ()
   (interactive)
   (lsp-treemacs-deps-with-jdtls
-   (let ((paths (lsp-send-execute-command "java.resolvePath"
-                                          (lsp--buffer-uri))))
-     (select-window
-      (with-current-buffer lsp-treemacs-deps-buffer-name
-        (set-window-point
-         (get-buffer-window)
-         (marker-position
-          (-reduce-from
-           (-lambda (node (&hash "path" "name" "uri"))
-             (unless (treemacs-is-node-expanded? node)
-               (save-excursion
-                 (goto-char (marker-position node))
-                 (funcall (alist-get (treemacs-button-get node :state) treemacs-TAB-actions-config))))
-             (or (lsp-treemacs--deps-find-children-for-key node (list name uri path))
-                 (user-error "Unable to find %s in the dependency tree." (buffer-name))))
-           (treemacs-dom-node->position (treemacs-find-in-dom '(:custom LSP-Java-Dependency)))
-           paths)))
-        (get-buffer-window)))
-     (recenter nil))))
+    (let ((paths (lsp-send-execute-command "java.resolvePath"
+                                           (lsp--buffer-uri))))
+      (select-window
+       (with-current-buffer lsp-treemacs-deps-buffer-name
+         (set-window-point
+          (get-buffer-window)
+          (marker-position
+           (-reduce-from
+            (-lambda (node (&hash "path" "name" "uri"))
+              (unless (treemacs-is-node-expanded? node)
+                (save-excursion
+                  (goto-char (marker-position node))
+                  (funcall (alist-get (treemacs-button-get node :state) treemacs-TAB-actions-config))))
+              (or (lsp-treemacs--deps-find-children-for-key node (list name uri path))
+                  (user-error "Unable to find %s in the dependency tree." (buffer-name))))
+            (treemacs-dom-node->position (treemacs-find-in-dom '(:custom LSP-Java-Dependency)))
+            paths)))
+         (get-buffer-window)))
+      (recenter nil))))
 
 
 ;; treemacs synchronization
@@ -874,6 +874,242 @@
     (remove-hook 'treemacs-workspace-edit-hook #'lsp-treemacs--treemacs->lsp)
     (remove-hook 'treemacs-switch-workspace-hook #'lsp-treemacs--treemacs->lsp))))
 
+
+(defun lsp-treemacs--java-get-class-file (file)
+  (-let (((_ package class jar-file) (s-match "jdt://contents/.*\/\\(.*\\)\/\\(.*\\).class\\?=.*?/\\(.*?\\)=\/" file)))
+    (symbol-name (read (url-unhex-string jar-file )))))
+
+(defvar-local lsp-treemacs-tree nil)
+
+(defun lsp-treemacs-perform-ret-action (&rest _)
+  (interactive)
+  (if-let (action (-> (treemacs-node-at-point)
+                      (button-get :item)
+                      (plist-get :ret-action)))
+      (funcall-interactively action)
+    (treemacs-pulse-on-failure "No ret action defined.")))
+
+(treemacs-define-expandable-node node
+  :icon-open-form (lsp-treemacs--symbol-icon (treemacs-button-get node :item) t)
+  :icon-closed-form (lsp-treemacs--symbol-icon (treemacs-button-get node :item) nil)
+  :query-function (let* ((item (treemacs-button-get node :item))
+                         (children (plist-get item :children)))
+                    (if (functionp children)
+                        (funcall children item)
+                      children))
+  :ret-action #'lsp-treemacs-perform-ret-action
+  :render-action
+  (treemacs-render-node
+   :icon (lsp-treemacs--symbol-icon item nil)
+   :label-form (plist-get item :label)
+   :state treemacs-node-closed-state
+   :key-form (plist-get item :key)
+   :more-properties (:children (plist-get item :children)
+                               :item item)))
+
+(treemacs-define-variadic-node generic
+  :query-function lsp-treemacs-tree
+  :render-action
+  (treemacs-render-node
+   :icon (lsp-treemacs--symbol-icon item nil)
+   :label-form (plist-get item :label)
+   :state treemacs-node-closed-state
+   :key-form (plist-get item :key)
+   :more-properties (:item item))
+  :root-key-form 'LSP-Generic)
+
+(defun lsp-treemacs--symbol-icon (item expanded?)
+  "Get the symbol for the the kind."
+  (concat
+   (if (plist-get item :children)
+       (if expanded?  " ▾ " " ▸ ")
+     "   ")
+   (or (plist-get item :icon-literal)
+       (if-let ((icon (plist-get item :icon)))
+           (treemacs-get-icon-value
+            icon
+            nil
+            lsp-treemacs-theme)
+         "   "))))
+
+(defun lsp-treemacs--get-xrefs-in-file (file-locs location-link)
+  (-let (((filename . links) file-locs))
+    (list :key filename
+          :label (format (propertize "%s %s" 'face 'default)
+                         (propertize (f-filename filename) 'face 'default)
+                         (propertize (format "%s references" (length links)) 'face 'lsp-lens-face))
+          :icon (f-ext filename)
+          :children (lambda (item)
+                      (condition-case err
+                          (let ((buf (lsp--buffer-for-file filename))
+                                (fn (lambda ()
+                                      (seq-map (lambda (loc)
+                                                 (lsp-treemacs--make-ref-item
+                                                  (if location-link
+                                                      (or (gethash "targetSelectionRange" loc)
+                                                          (gethash "targetRange" loc))
+                                                    (gethash "range" loc))
+                                                  filename))
+                                               links))))
+                            (if buf
+                                (with-current-buffer buf
+                                  (funcall fn))
+                              (when (file-readable-p filename)
+                                (with-temp-buffer
+                                  (insert-file-contents-literally filename)
+                                  (funcall fn)))))
+                        (error (ignore (lsp-warn
+                                        "Failed to process xref entry for filename '%s': %s"
+                                        filename
+                                        (error-message-string err))))
+                        (file-error (ignore (lsp-warn
+                                             "Failed to process xref entry, file-error, '%s': %s"
+                                             filename
+                                             (error-message-string err))))))
+          :ret-action (lambda (&rest _)
+                        (interactive)
+                        (lsp-treemacs--open-file-in-mru filename)))))
+
+(defun lsp-treemacs--extract-line (pos)
+  "Return the line pointed to by POS (a Position object) in the current buffer."
+  (let* ((point (lsp--position-to-point pos))
+         (inhibit-field-text-motion t))
+    (save-excursion
+      (goto-char point)
+      (buffer-substring (line-beginning-position)
+                        (line-end-position)))))
+
+(defun lsp-treemacs--extract-line (point)
+  "Return the line pointed to by POS (a Position object) in the current buffer."
+  (let* ((inhibit-field-text-motion t))
+    (save-excursion
+      (goto-char point)
+      (buffer-substring (line-beginning-position)
+                        (line-end-position)))))
+
+(defun lsp-treemacs--make-ref-item (range filename)
+  "Return a xref-item from a RANGE in FILENAME."
+  (-let* ((pos-start (gethash "start" range))
+          (pos-end (gethash "end" range))
+          (point (lsp--position-to-point pos-start))
+          (line (lsp-treemacs--extract-line point))
+          (start (gethash "character" pos-start))
+          (line-number (gethash "line" pos-start))
+          (end (gethash "character" pos-end))
+          (len (length line)))
+    (add-face-text-property (max (min start len) 0)
+                            (max (min end len) 0)
+                            'highlight t line)
+    ;; LINE is nil when FILENAME is not being current visited by any buffer.
+    (list :label (s-trim (format "%s %s"
+                                 line
+                                 (propertize(format "%s line"
+                                                    (1+ line-number))
+                                            'face 'lsp-lens-face)))
+          :key line
+          :point (lsp--position-to-point pos-start)
+          :icon-literal " "
+          :ret-action (lambda (&rest _)
+                        (interactive)
+                        (lsp-treemacs--open-file-in-mru filename)
+                        (goto-char point)))))
+
+(defun lsp-treemacs-initialize ()
+  (unless (derived-mode-p 'treemacs-mode)
+    (treemacs-initialize)
+    (lsp-treemacs-generic-mode t)
+    (treemacs-GENERIC-extension)))
+
+(defun lsp-treemacs-generic-refresh ()
+  (condition-case _err
+      (let ((inhibit-read-only t))
+        (treemacs-update-node '(:custom LSP-Generic) t))
+    (error)))
+
+(defvar lsp-treemacs-generic-map
+  (-doto (make-sparse-keymap)
+    (define-key [mouse-1]  #'treemacs-TAB-action)
+    (define-key [double-mouse-1] #'treemacs-RET-action))
+  "Keymap for `lsp-treemacs-generic-mode'")
+
+(define-minor-mode lsp-treemacs-generic-mode "Treemacs generic mode."
+  nil nil lsp-treemacs-generic-map)
+
+
+(defun lsp-treemacs--handle-references (refs)
+  (->> refs
+       (-group-by (-lambda ((&hash "uri"))
+                    (let ((type (url-type (url-generic-parse-url (url-unhex-string uri)))))
+                      (if (string= type "jdt")
+                          (lsp-treemacs--java-get-class-file uri)
+                        (lsp-workspace-root (lsp--uri-to-path uri))))))
+       (-map (-lambda ((path . rst))
+               (list :key path
+                     :label (format
+                             "%s %s"
+                             (f-filename path)
+                             (propertize (format "%s references" (length rst)) 'face 'lsp-lens-face))
+                     :icon (if (f-file? path)
+                               (f-ext path)
+                             'dir-open)
+                     :children (lambda (item)
+                                 (-map (lambda (it)
+                                         (lsp-treemacs--get-xrefs-in-file it nil))
+                                       (-group-by (-lambda ((&hash "uri"))
+                                                    (lsp--uri-to-path uri))
+                                                  rst)))
+                     :ret-action (lambda (&rest _)
+                                   (interactive)
+                                   (lsp-treemacs--open-file-in-mru path)))))))
+
+(defun lsp-treemacs--show-references (tree title expand?)
+  (with-current-buffer (get-buffer-create "*LSP Lookup*")
+    (lsp-treemacs-initialize)
+    (setq-local lsp-treemacs-tree tree)
+    (setq-local face-remapping-alist '((button . default)))
+    (lsp-treemacs-generic-refresh)
+    (display-buffer (current-buffer))
+    (when expand? (lsp-treemacs--expand 'LSP-Generic))
+    (setq-local mode-name title)))
+
+(defun lsp-treemacs--do-search (method params title expand?)
+  (display-buffer-in-side-window (get-buffer-create "*LSP Lookup*")
+                                 '((side . bottom)))
+  (lsp-request-async
+   method
+   params
+   (lambda (refs)
+     (setq-local mode-name "Rendering results...")
+     (lsp-with-cached-filetrue-name
+      (let ((lsp-file-truename-cache (ht)))
+        (lsp-treemacs--show-references (lsp-treemacs--handle-references refs)
+                                       (format title (length refs))
+                                       expand?)))
+     (lsp--info "Refresh completed!"))
+   :mode 'detached
+   :cancel-token :treemacs-lookup)
+
+  (with-current-buffer "*LSP Lookup*"
+    (lsp-treemacs-initialize)
+    (setq-local mode-name "Loading...")
+    (setq-local lsp-treemacs-tree nil)
+    (lsp-treemacs-generic-refresh)))
+
+;;;###autoload
+(defun lsp-treemacs-references (arg)
+  (interactive "P")
+  (lsp-treemacs--do-search "textDocument/references"
+                           `(:context (:includeDeclaration t) ,@(lsp--text-document-position-params))
+                           "Found %s references"
+                           arg))
+
+;;;###autoload
+(defun lsp-treemacs-implementations (arg)
+  (interactive "P")
+  (lsp-treemacs--do-search "textDocument/implementation"
+                           (lsp--text-document-position-params)
+                           "Found %s implementations"
+                           arg))
 
 
 (provide 'lsp-treemacs)
