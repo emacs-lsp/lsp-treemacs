@@ -1014,31 +1014,31 @@
 
 (defun lsp-treemacs--show-references (refs)
   (with-current-buffer (get-buffer-create "*LSP References*")
-
     (lsp-treemacs-initialize)
     (setq-local mode-name "Rendering results ...")
-    (lsp-with-cached-filetrue-name
-     (setq-local lsp-treemacs-tree
-                 (->> refs
-                      (-group-by (-lambda ((&hash "uri"))
-                                   (let ((type (url-type (url-generic-parse-url (url-unhex-string uri)))))
-                                     (if (string= type "jdt")
-                                         (lsp-treemacs--java-get-class-file uri)
-                                       (lsp-workspace-root (lsp--uri-to-path uri))))))
-                      (-map (-lambda ((path . rst))
-                              (list :key path
-                                    :label (format
-                                            "%s %s"
-                                            (f-filename path)
-                                            (propertize (format "%s references" (length rst)) 'face 'lsp-lens-face))
-                                    :icon (if (f-file? path)
-                                              (f-ext path)
-                                            'dir-open)
-                                    :children (--map (lsp-treemacs--get-xrefs-in-file it nil)
-                                                     (-group-by
-                                                      (-lambda ((&hash "uri"))
-                                                        (lsp--uri-to-path uri))
-                                                      rst))))))))
+    (let ((lsp-file-truename-cache (ht)))
+      (lsp-with-cached-filetrue-name
+       (setq-local lsp-treemacs-tree
+                   (->> refs
+                        (-group-by (-lambda ((&hash "uri"))
+                                     (let ((type (url-type (url-generic-parse-url (url-unhex-string uri)))))
+                                       (if (string= type "jdt")
+                                           (lsp-treemacs--java-get-class-file uri)
+                                         (lsp-workspace-root (lsp--uri-to-path uri))))))
+                        (-map (-lambda ((path . rst))
+                                (list :key path
+                                      :label (format
+                                              "%s %s"
+                                              (f-filename path)
+                                              (propertize (format "%s references" (length rst)) 'face 'lsp-lens-face))
+                                      :icon (if (f-file? path)
+                                                (f-ext path)
+                                              'dir-open)
+                                      :children (--map (lsp-treemacs--get-xrefs-in-file it nil)
+                                                       (-group-by
+                                                        (-lambda ((&hash "uri"))
+                                                          (lsp--uri-to-path uri))
+                                                        rst)))))))))
 
     (setq-local face-remapping-alist '((button . default)))
     (setq-local mode-name (format "Found %s references" (length refs)))
@@ -1062,7 +1062,13 @@
 
   (with-current-buffer "*LSP References*"
     (lsp-treemacs-initialize)
-    (setq-local mode-name "Loading...")))
+    (setq-local mode-name "Loading...")
+    (setq-local lsp-treemacs-tree nil)
+    (condition-case _err
+        (let ((inhibit-read-only t))
+          (treemacs-update-node '(:custom LSP-Generic) t)
+          (lsp--info "Refresh completed"))
+      (error))))
 
 
 
