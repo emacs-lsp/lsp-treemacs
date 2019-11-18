@@ -36,7 +36,6 @@
 
 (defconst lsp-treemacs-deps-buffer-name "*Java Dependency List*")
 
-
 (defgroup lsp-treemacs nil
   "Language Server Protocol client."
   :group 'tools
@@ -940,26 +939,33 @@
                          (propertize (f-filename filename) 'face 'default)
                          (propertize (format "%s references" (length links)) 'face 'lsp-lens-face))
           :icon (f-ext filename)
-          :children (condition-case err
-                        (let ((buf (lsp--buffer-for-file filename))
-                              (fn (lambda ()
-                                    (seq-map (lambda (loc)
-                                               (lsp-treemacs--make-ref-item
-                                                (if location-link
-                                                    (or (gethash "targetSelectionRange" loc)
-                                                        (gethash "targetRange" loc))
-                                                  (gethash "range" loc))
-                                                filename))
-                                             links))))
-                          (if buf
-                              (with-current-buffer buf
-                                (funcall fn))
-                            (when (file-readable-p filename)
-                              (with-temp-buffer
-                                (insert-file-contents-literally filename)
-                                (funcall fn)))))
-                      (error (ignore (lsp-warn "Failed to process xref entry for filename '%s': %s" filename (error-message-string err))))
-                      (file-error (ignore (lsp-warn "Failed to process xref entry, file-error, '%s': %s" filename (error-message-string err)))))
+          :children (lambda (item)
+                      (condition-case err
+                          (let ((buf (lsp--buffer-for-file filename))
+                                (fn (lambda ()
+                                      (seq-map (lambda (loc)
+                                                 (lsp-treemacs--make-ref-item
+                                                  (if location-link
+                                                      (or (gethash "targetSelectionRange" loc)
+                                                          (gethash "targetRange" loc))
+                                                    (gethash "range" loc))
+                                                  filename))
+                                               links))))
+                            (if buf
+                                (with-current-buffer buf
+                                  (funcall fn))
+                              (when (file-readable-p filename)
+                                (with-temp-buffer
+                                  (insert-file-contents-literally filename)
+                                  (funcall fn)))))
+                        (error (ignore (lsp-warn
+                                        "Failed to process xref entry for filename '%s': %s"
+                                        filename
+                                        (error-message-string err))))
+                        (file-error (ignore (lsp-warn
+                                             "Failed to process xref entry, file-error, '%s': %s"
+                                             filename
+                                             (error-message-string err))))))
           :ret-action (lambda (&rest _)
                         (interactive)
                         (lsp-treemacs--open-file-in-mru filename)))))
@@ -972,6 +978,7 @@
       (goto-char point)
       (buffer-substring (line-beginning-position)
                         (line-end-position)))))
+
 (defun lsp-treemacs--extract-line (point)
   "Return the line pointed to by POS (a Position object) in the current buffer."
   (let* ((inhibit-field-text-motion t))
@@ -1010,46 +1017,58 @@
 (defun lsp-treemacs-initialize ()
   (unless (derived-mode-p 'treemacs-mode)
     (treemacs-initialize)
+    (lsp-treemacs-generic-mode t)
     (treemacs-GENERIC-extension)))
 
-(defun lsp-treemacs--show-references (refs)
+(defun lsp-treemacs-generic-refresh ()
+  (condition-case _err
+      (let ((inhibit-read-only t))
+        (treemacs-update-node '(:custom LSP-Generic) t))
+    (error)))
+
+(defvar lsp-treemacs-generic-map
+  (-doto (make-sparse-keymap)
+    (define-key [mouse-1]  #'treemacs-TAB-action)
+    (define-key [double-mouse-1] #'treemacs-RET-action))
+  "Keymap for `lsp-treemacs-generic-mode'")
+
+(define-minor-mode lsp-treemacs-generic-mode "Treemacs generic mode."
+  nil nil lsp-treemacs-generic-map)
+
+
+(defun lsp-treemacs--handle-references (refs)
+  (->> refs
+       (-group-by (-lambda ((&hash "uri"))
+                    (let ((type (url-type (url-generic-parse-url (url-unhex-string uri)))))
+                      (if (string= type "jdt")
+                          (lsp-treemacs--java-get-class-file uri)
+                        (lsp-workspace-root (lsp--uri-to-path uri))))))
+       (-map (-lambda ((path . rst))
+               (list :key path
+                     :label (format
+                             "%s %s"
+                             (f-filename path)
+                             (propertize (format "%s references" (length rst)) 'face 'lsp-lens-face))
+                     :icon (if (f-file? path)
+                               (f-ext path)
+                             'dir-open)
+                     :children (lambda (item)
+                                 (-map (lambda (it)
+                                         (lsp-treemacs--get-xrefs-in-file it nil))
+                                       (-group-by (-lambda ((&hash "uri"))
+                                                    (lsp--uri-to-path uri))
+                                                  rst)))
+                     :ret-action (lambda (&rest _)
+                                   (interactive)
+                                   (lsp-treemacs--open-file-in-mru path)))))))
+
+(defun lsp-treemacs--show-references (tree)
   (with-current-buffer (get-buffer-create "*LSP References*")
     (lsp-treemacs-initialize)
-    (setq-local mode-name "Rendering results ...")
-    (let ((lsp-file-truename-cache (ht)))
-      (lsp-with-cached-filetrue-name
-       (setq-local lsp-treemacs-tree
-                   (->> refs
-                        (-group-by (-lambda ((&hash "uri"))
-                                     (let ((type (url-type (url-generic-parse-url (url-unhex-string uri)))))
-                                       (if (string= type "jdt")
-                                           (lsp-treemacs--java-get-class-file uri)
-                                         (lsp-workspace-root (lsp--uri-to-path uri))))))
-                        (-map (-lambda ((path . rst))
-                                (list :key path
-                                      :label (format
-                                              "%s %s"
-                                              (f-filename path)
-                                              (propertize (format "%s references" (length rst)) 'face 'lsp-lens-face))
-                                      :icon (if (f-file? path)
-                                                (f-ext path)
-                                              'dir-open)
-                                      :children (--map (lsp-treemacs--get-xrefs-in-file it nil)
-                                                       (-group-by
-                                                        (-lambda ((&hash "uri"))
-                                                          (lsp--uri-to-path uri))
-                                                        rst)))))))))
-
+    (setq-local lsp-treemacs-tree tree)
     (setq-local face-remapping-alist '((button . default)))
-    (setq-local mode-name (format "Found %s references" (length refs)))
-
-    (condition-case _err
-        (let ((inhibit-read-only t))
-          (treemacs-update-node '(:custom LSP-Generic) t)
-          (lsp--info "Refresh completed"))
-      (error))
-    ;; (lsp-treemacs--expand 'LSP-Generic)
-    ))
+    (lsp-treemacs-generic-refresh)
+    (display-buffer (current-buffer))))
 
 (defun lsp-treemacs-references ()
   (interactive)
@@ -1057,18 +1076,25 @@
   (lsp-request-async
    "textDocument/references"
    `(:context (:includeDeclaration t) ,@(lsp--text-document-position-params))
-   #'lsp-treemacs--show-references
-   :mode 'detached)
+   (lambda (refs)
+     (setq-local mode-name "Rendering results ...")
+
+     (let ((lsp-file-truename-cache (ht)))
+       (-> refs
+           (lsp-treemacs--handle-references)
+           (lsp-treemacs--show-references)
+           (lsp-with-cached-filetrue-name)))
+     (setq-local mode-name (format "Found %s references" refs))
+     ;; (lsp-treemacs--expand 'LSP-Generic))
+     (lsp--info "Refresh completed"))
+   :mode 'detached
+   :cancel-token :treemacs-references)
 
   (with-current-buffer "*LSP References*"
     (lsp-treemacs-initialize)
     (setq-local mode-name "Loading...")
     (setq-local lsp-treemacs-tree nil)
-    (condition-case _err
-        (let ((inhibit-read-only t))
-          (treemacs-update-node '(:custom LSP-Generic) t)
-          (lsp--info "Refresh completed"))
-      (error))))
+    (lsp-treemacs-generic-refresh)))
 
 
 
@@ -1078,3 +1104,80 @@
 ;; Local Variables:
 ;; flycheck-disabled-checkers: (emacs-lisp-checkdoc)
 ;; End:
+
+(defun dash-expand:&dap-session (key source)
+  `(,(intern-soft (format "dap--debug-session-%s" (eval key) )) ,source))
+
+
+(defun dap--send-message-sync (message session)
+  (let* (;; max time by which we must get a response
+         (send-time (time-to-seconds (current-time)) )
+         (expected-time (+ send-time lsp-response-timeout))
+         resp-result)
+
+    (dap--send-message message
+                       (dap--resp-handler
+                        (lambda (res)
+                          (setf resp-result (or res :finished))))
+                       session)
+
+    (while (not resp-result)
+      (accept-process-output nil 0.001)
+      (when (< expected-time (time-to-seconds (current-time)))
+        (error "Timeout while waiting for response. Method: %s." method)))
+    resp-result))
+
+(->> (lsp-workspace-get-metadata "debug-sessions")
+     reverse
+     (-map
+      (-lambda ((session &as &dap-session 'name 'thread-states))
+        (list
+         :label (propertize name 'face (dap-ui-session--calculate-face session))
+         :key name
+         :icon (if (dap--session-running session)
+                   'session-started
+                 'session-terminated)
+         :children
+         (when (dap--session-running session)
+           (->>
+            (dap--send-message-sync (dap--make-request "threads")
+                                    session)
+            (gethash "body")
+            (gethash "threads")
+            (-map
+             (-lambda ((thread &as &hash "name" "id"))
+               (let* ((status (s-capitalize (or (gethash id thread-states) "running")))
+                      (stopped? (string= status "Stopped")))
+                 (list
+                  :label (concat name (when status (propertize (concat "  " status) 'face 'lsp-lens-face)))
+                  :key id
+                  :icon (if stopped? 'thread-stopped 'thread-running)
+                  :children
+                  (when stopped?
+                    (->> (dap--send-message-sync (dap--make-request "stackTrace"
+                                                                    (list :threadId id))
+                                                 session)
+                         (gethash "body")
+                         (gethash "stackFrames")
+                         (-map (-lambda ((stack-frame &as &hash "name" "line" "source"))
+                                 (let* ((current-session (dap--cur-session))
+                                        (icons (if (and
+                                                    (equal session current-session)
+                                                    (= id (dap--debug-session-thread-id current-session))
+                                                    (equal stack-frame (dap--debug-session-active-frame current-session)))
+                                                   'stack-stopped
+                                                 'stack)))
+                                   (list
+                                    :label (if source
+                                               (concat (propertize name
+                                                                   'face
+                                                                   'dap-ui-sessions-stack-frame-face)
+                                                       (propertize (format " (%s:%s)" (or (gethash "name" source)
+                                                                                          (gethash "path" source))
+                                                                           line)
+                                                                   'face 'lsp-lens-face))
+                                             (concat name (propertize "(Unknown source)"
+                                                                      'lsp-lens-face) ))
+                                    :key name
+                                    :icon icons)))))))))))))))
+     lsp-treemacs--show-references)
