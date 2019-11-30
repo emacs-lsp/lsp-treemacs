@@ -1012,7 +1012,8 @@
           :ret-action (lambda (&rest _)
                         (interactive)
                         (lsp-treemacs--open-file-in-mru filename)
-                        (goto-char point)))))
+                        (goto-char point)
+                        (run-hooks 'xref-after-jump-hook)))))
 
 (defun lsp-treemacs-initialize ()
   (unless (derived-mode-p 'treemacs-mode)
