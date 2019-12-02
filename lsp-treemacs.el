@@ -811,7 +811,7 @@
          (get-buffer-window)))
       (recenter nil))))
 
-
+
 ;; treemacs synchronization
 
 (defun lsp-treemacs--on-folder-remove (project)
@@ -1025,15 +1025,35 @@
         (treemacs-update-node '(:custom LSP-Generic) t))
     (error)))
 
+(defun lsp-treemacs-generic-right-click (event)
+  (interactive "e")
+  (let* ((ec (event-start event))
+         (p1 (posn-point ec))
+         (w1 (posn-window ec)))
+    (select-window w1)
+    (goto-char p1)
+    (hl-line-highlight)
+    (run-with-idle-timer
+     0.001 nil
+     (lambda ()
+       (-when-let* ((actions (-some-> (treemacs-node-at-point)
+                               (button-get :item)
+                               (plist-get :actions)))
+                    (menu (easy-menu-create-menu nil actions))
+                    (choice (x-popup-menu event menu)))
+         (when choice (call-interactively (lookup-key menu (apply 'vector choice))))
+         (hl-line-highlight))))))
+
 (defvar lsp-treemacs-generic-map
   (-doto (make-sparse-keymap)
     (define-key [mouse-1]  #'treemacs-TAB-action)
-    (define-key [double-mouse-1] #'treemacs-RET-action))
+    (define-key [double-mouse-1] #'treemacs-RET-action)
+    (define-key [mouse-3]  #'lsp-treemacs-generic-right-click))
+
   "Keymap for `lsp-treemacs-generic-mode'")
 
 (define-minor-mode lsp-treemacs-generic-mode "Treemacs generic mode."
   nil nil lsp-treemacs-generic-map)
-
 
 (defun lsp-treemacs--handle-references (refs)
   (->> refs
@@ -1109,7 +1129,7 @@
                            (lsp--text-document-position-params)
                            "Found %s implementations"
                            arg))
-
+
 
 (provide 'lsp-treemacs)
 ;;; lsp-treemacs.el ends here
