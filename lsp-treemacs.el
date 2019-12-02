@@ -145,9 +145,7 @@
         (-let (((file . diag) key)
                (session (lsp-session)))
           (with-current-buffer (find-file-noselect file)
-            (with-lsp-workspaces (gethash
-                                  (lsp-find-session-folder session file)
-                                  (lsp-session-folder->servers session))
+            (with-lsp-workspaces (lsp--try-project-root-workspaces nil nil)
               (save-excursion
                 (goto-char (point-min))
                 (forward-line (lsp-diagnostic-line diag))
