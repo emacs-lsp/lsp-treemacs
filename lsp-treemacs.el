@@ -888,8 +888,8 @@
     (treemacs-pulse-on-failure "No ret action defined.")))
 
 (treemacs-define-expandable-node node
-  :icon-open-form (lsp-treemacs--symbol-icon (treemacs-button-get node :item) t)
-  :icon-closed-form (lsp-treemacs--symbol-icon (treemacs-button-get node :item) nil)
+  :icon-open-form (lsp-treemacs--generic-icon (treemacs-button-get node :item) t)
+  :icon-closed-form (lsp-treemacs--generic-icon (treemacs-button-get node :item) nil)
   :query-function (let* ((item (treemacs-button-get node :item))
                          (children (plist-get item :children)))
                     (if (functionp children)
@@ -898,7 +898,7 @@
   :ret-action #'lsp-treemacs-perform-ret-action
   :render-action
   (treemacs-render-node
-   :icon (lsp-treemacs--symbol-icon item nil)
+   :icon (lsp-treemacs--generic-icon item nil)
    :label-form (plist-get item :label)
    :state treemacs-node-closed-state
    :key-form (plist-get item :key)
@@ -909,14 +909,14 @@
   :query-function lsp-treemacs-tree
   :render-action
   (treemacs-render-node
-   :icon (lsp-treemacs--symbol-icon item nil)
+   :icon (lsp-treemacs--generic-icon item nil)
    :label-form (plist-get item :label)
    :state treemacs-node-closed-state
    :key-form (plist-get item :key)
    :more-properties (:item item))
   :root-key-form 'LSP-Generic)
 
-(defun lsp-treemacs--symbol-icon (item expanded?)
+(defun lsp-treemacs--generic-icon (item expanded?)
   "Get the symbol for the the kind."
   (concat
    (if (plist-get item :children)
