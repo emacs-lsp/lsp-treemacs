@@ -417,6 +417,35 @@
     (treemacs-create-icon :file "package.png" :extensions (package) :fallback "-")
     (treemacs-create-icon :file "project.png" :extensions (java-project) :fallback "-")))
 
+(defun lsp-treemacs--symbol-kind->icon (kind)
+  (cl-case kind
+    (1 'document)
+    (2  'namespace)
+    (3  'namespace)
+    (4  'namespace)
+    (5  'class)
+    (6  'method)
+    (7  'property)
+    (8  'field)
+    (9  'method)
+    (10 'enumerator)
+    (11 'interface)
+    (12 'method )
+    (13 'localvariable)
+    (14 'constant)
+    (15 'string)
+    (16 'numeric)
+    (17 'boolean-data)
+    (18 'boolean-data)
+    (19 'namespace)
+    (20 'indexer)
+    (21 'boolean-data)
+    (22 'enumitem)
+    (23 'structure)
+    (24 'event)
+    (25 'operator)
+    (26 'template)))
+
 (defun lsp-treemacs--symbol-icon (symbol expanded)
   "Get the symbol for the the kind."
   (-let [(&hash "kind" "children") symbol]
@@ -424,36 +453,9 @@
      (if (seq-empty-p children)
          "   "
        (if expanded  " ▾ " " ▸ "))
-     (treemacs-get-icon-value
-      (cl-case kind
-        (1 'document)
-        (2  'namespace)
-        (3  'namespace)
-        (4  'namespace)
-        (5  'class)
-        (6  'method)
-        (7  'property)
-        (8  'field)
-        (9  'method)
-        (10 'enumerator)
-        (11 'interface)
-        (12 'method )
-        (13 'localvariable)
-        (14 'constant)
-        (15 'string)
-        (16 'numeric)
-        (17 'boolean-data)
-        (18  'boolean-data)
-        (19 'namespace)
-        (20 'indexer)
-        (21 'boolean-data)
-        (22 'enumitem)
-        (23 'structure)
-        (24 'event)
-        (25 'operator)
-        (26 'template))
-      nil
-      lsp-treemacs-theme))))
+     (treemacs-get-icon-value (lsp-treemacs--symbol-kind->icon kind)
+                              nil
+                              lsp-treemacs-theme))))
 
 (treemacs-define-expandable-node lsp-symbol
   :icon-open-form (lsp-treemacs--symbol-icon (treemacs-button-get node :symbol) t)
@@ -477,31 +479,89 @@
 (defvar lsp-treemacs--symbols-last-buffer nil)
 (defvar lsp-treemacs--symbols-timer nil)
 
-(treemacs-define-variadic-node lsp-symbols-list
-  :query-function lsp-treemacs--symbols
-  :render-action
-  (treemacs-render-node
-   :icon (lsp-treemacs--symbol-icon item nil)
-   :label-form (propertize (gethash "name" item) 'face 'default)
-   :state treemacs-lsp-symbol-closed-state
-   :key-form (gethash "name" item)
-   :more-properties (:symbol item))
-  :root-key-form 'LSP-Symbols)
+(defun lsp-treemacs-sort-by-position (left right)
+  (-let (((&plist :position left-position) left)
+         ((&plist :position right-position) right))
+    (and left-position right-position (lsp--position-compare left-position right-position))))
+
+(defun lsp-treemacs-sort-by-kind (left right)
+  (-let (((&plist :kind left-kind) left)
+         ((&plist :kind right-kind) right))
+    (and left-kind right-kind (> left-kind right-kind))))
+
+(defun lsp-treemacs-sort-by-name (left right)
+  (-let* (((&plist :label left-name) left)
+          ((&plist :label right-name) right))
+    (string> (downcase right-name) (downcase left-name))))
+
+(defcustom lsp-treemacs-symbols-sort-functions '(lsp-treemacs-sort-by-position)
+  "Sort functions."
+  :type '(repeat
+          (choice
+           (const :tag "Name" lsp-treemacs-sort-by-name)
+           (const :tag "Kind"  lsp-treemacs-sort-by-kind)
+           (const :tag "Position" lsp-treemacs-sort-by-position))))
+
+(defun lsp-treemacs--symbols->tree (items parent-key)
+  (-sort (lambda (left right)
+           (-first (lambda (fn)
+                     (funcall fn left right))
+                   lsp-treemacs-symbols-sort-functions))
+         (if (-some->> items lsp-seq-first (gethash "location"))
+             (-let [(current rest) (-separate (-lambda ((&hash "containerName" container))
+                                                (string= container parent-key))
+                                              (append items nil))]
+               (seq-map (-lambda ((&hash "name" "containerName" container-name "location" "kind"))
+                          (when (string=  parent-key container-name)
+                            `(:label ,name
+                                     :key ,name
+                                     :icon ,(lsp-treemacs--symbol-kind->icon kind)
+                                     ,@(when (-first (-lambda ((&hash "containerName" parent))
+                                                       (string= name parent))
+                                                     rest)
+                                         (list :children (lsp-treemacs--symbols->tree rest name)))
+                                     :kind ,kind
+                                     :location ,(gethash "start" (gethash "range" location))
+                                     :ret-action ,(lambda (&rest _)
+                                                    (pop-to-buffer lsp-treemacs--symbols-last-buffer)
+                                                    (->> location
+                                                         (gethash "range")
+                                                         (gethash "start")
+                                                         lsp--position-to-point
+                                                         goto-char)
+                                                    (run-hooks 'xref-after-jump-hook)))))
+                        current))
+           (seq-map (-lambda ((&hash "name" "selectionRange" range "kind" "children" "deprecated"))
+                      `(:label ,(if deprecated
+                                    (propertize name 'face 'lsp-face-semhl-deprecated)
+                                  name)
+                               :key ,name
+                               :icon ,(lsp-treemacs--symbol-kind->icon kind)
+                               :kind ,kind
+                               :location (gethash "start" range)
+                               ,@(unless (seq-empty-p children)
+                                   (list :children (lsp-treemacs--symbols->tree children name)))
+                               :ret-action ,(lambda (&rest _)
+                                              (pop-to-buffer lsp-treemacs--symbols-last-buffer)
+                                              (->> range
+                                                   (gethash "start")
+                                                   lsp--position-to-point
+                                                   goto-char)
+                                              (run-hooks 'xref-after-jump-hook))))
+                    items))))
 
 (defun lsp-treemacs--update-symbols ()
   "After diagnostics handler."
-  (condition-case _err
-      (let ((inhibit-read-only t))
-        (with-current-buffer "*LSP Symbols List*"
-          (treemacs-update-node '(:custom LSP-Symbols) t)))
-    (error))
-
-  (when (and lsp-treemacs--symbols (> 30 (length lsp-treemacs--symbols)))
-    (lsp-treemacs--expand '(:custom LSP-Symbols)))
   (setq-local header-line-format
               (unless lsp-treemacs--symbols
-                (propertize "The active buffer cannot provide symbols information."
-                            'face 'shadow))))
+                (propertize "No symbol information." 'face 'shadow)))
+  (lsp-treemacs--show-references
+   (lsp-treemacs--symbols->tree
+    lsp-treemacs--symbols
+    nil)
+   "LSP Symbols"
+   (and lsp-treemacs--symbols (> 30 (length lsp-treemacs--symbols)))
+   "*LSP Symbols List*" ))
 
 (defun lsp-treemacs--update ()
   (unless (eq (current-buffer) (get-buffer "*scratch*"))
@@ -527,27 +587,7 @@
     (let ((buffer-changed (and lsp-treemacs--symbols-current-buffer
                                (not (eq lsp-treemacs--symbols-current-buffer (current-buffer)))
                                (not (eq (current-buffer) (get-buffer "*LSP Symbols List*"))))))
-      ;; (when buffer-changed
-      ;;   (with-current-buffer lsp-treemacs--symbols-current-buffer
-      ;;     (setq-local lsp-treemacs--symbols-state-string (with-current-buffer "*LSP Symbols List*"
-      ;;                                                      (buffer-string)))
-      ;;     (setq-local lsp-treemacs--symbols-state-locals (with-current-buffer "*LSP Symbols List*"
-      ;;                                                      (buffer-local-variables)))))
-      (setq lsp-treemacs--symbols-current-buffer (current-buffer))
-
-      ;; (when (and lsp-treemacs--symbols-state-string buffer-changed)
-      ;;   (with-current-buffer "*LSP Symbols List*"
-      ;;     (let ((buffer-string lsp-treemacs--symbols-state-string)
-      ;;           (locals lsp-treemacs--symbols-state-locals))
-      ;;       (let ((inhibit-read-only t))
-      ;;         (mapc (lambda (v)
-      ;;                 (condition-case ()
-      ;;                     (if (symbolp v)
-      ;;                         (makunbound v)
-      ;;                       (set (make-local-variable (car v)) (cdr v)))
-      ;;                   (setting-constant nil)))
-      ;;               locals)))))
-      )))
+      (setq lsp-treemacs--symbols-current-buffer (current-buffer)))))
 
 (defun lsp-treemacs-goto-symbol (&rest _)
   "Goto the symbol at point."
@@ -564,14 +604,15 @@
                                                (gethash "start"))
                                              (error "Unable to go to location")))))
           (pop-to-buffer lsp-treemacs--symbols-last-buffer)
-          (goto-char p)))
+          (goto-char p)
+          (run-hooks 'xref-after-jump-hook)))
     (user-error "No symbol under point.")))
 
 (with-eval-after-load 'winum
   (when (boundp 'winum-ignored-buffers)
     (add-to-list 'winum-ignored-buffers "*LSP Symbols List*")
     (add-to-list 'winum-ignored-buffers "*LSP Error List*")
-    (add-to-list 'winum-ignored-buffers lsp-treemacs-deps-buffer-name)))
+    (add-to-list 'winum-ignored-buffers  lsp-treemacs-deps-buffer-name)))
 
 (defun lsp-treemacs--expand (root-key)
   (-when-let (root (treemacs-dom-node->position (treemacs-find-in-dom root-key)))
@@ -580,9 +621,6 @@
 
 (defun lsp-treemacs--kill-symbols-buffer ()
   (and lsp-treemacs--symbols-timer (cancel-timer lsp-treemacs--symbols-timer)))
-
-(define-derived-mode lsp-treemacs-symbols-mode treemacs-mode "LSP Symbols View"
-  "A major mode for displaying LSP Symbols.")
 
 ;;;###autoload
 (defun lsp-treemacs-symbols ()
@@ -595,11 +633,8 @@
              (window (display-buffer-in-side-window buf lsp-treemacs-symbols-position-params)))
         (select-window window)
         (set-window-dedicated-p window t)
-        (treemacs-initialize)
-        (lsp-treemacs-symbols-mode)
         (setq-local treemacs-default-visit-action 'treemacs-RET-action)
         (setq-local treemacs-space-between-root-nodes nil)
-        (treemacs-LSP-SYMBOLS-LIST-extension)
         (setq lsp-treemacs--symbols-timer (run-at-time 0 1.0 #'lsp-treemacs--update))
         (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-symbols-buffer nil t)))
     (with-current-buffer original-buffer (lsp-treemacs--update))))
@@ -812,6 +847,7 @@
       (recenter nil))))
 
 
+
 ;; treemacs synchronization
 
 (defun lsp-treemacs--on-folder-remove (project)
@@ -872,6 +908,7 @@
     (remove-hook 'treemacs-workspace-edit-hook #'lsp-treemacs--treemacs->lsp)
     (remove-hook 'treemacs-switch-workspace-hook #'lsp-treemacs--treemacs->lsp))))
 
+
 
 (defun lsp-treemacs--java-get-class-file (file)
   (-let (((_ package class jar-file) (s-match "jdt://contents/.*\/\\(.*\\)\/\\(.*\\).class\\?=.*?/\\(.*?\\)=\/" file)))
@@ -1081,15 +1118,16 @@
                                    (interactive)
                                    (lsp-treemacs--open-file-in-mru path)))))))
 
-(defun lsp-treemacs--show-references (tree title expand?)
-  (with-current-buffer (get-buffer-create "*LSP Lookup*")
+(defun lsp-treemacs--show-references (tree title expand? &optional buffer-name)
+  (with-current-buffer (get-buffer-create (or buffer-name "*LSP Lookup*"))
     (lsp-treemacs-initialize)
     (setq-local lsp-treemacs-tree tree)
     (setq-local face-remapping-alist '((button . default)))
     (lsp-treemacs-generic-refresh)
-    (display-buffer (current-buffer))
+    ;; (display-buffer (current-buffer))
     (when expand? (lsp-treemacs--expand 'LSP-Generic))
-    (setq-local mode-name title)))
+    (setq-local mode-name title)
+    (current-buffer)))
 
 (defun lsp-treemacs--do-search (method params title expand?)
   (display-buffer-in-side-window (get-buffer-create "*LSP Lookup*")
