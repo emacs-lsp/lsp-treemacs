@@ -1168,6 +1168,32 @@
                            "Found %s implementations"
                            arg))
 
+
+
+(defun lsp-treemacs--hierarchy-item-children (buffer item _)
+  (with-current-buffer buffer
+    (-map (-lambda ((node &as &hash "from" (to &as &hash "name" "kind" "detail")))
+            (list :label (format "%s - %s" name detail)
+                  :icon (lsp-treemacs--symbol-kind->icon kind)
+                  :key name
+                  :children (-partial #'lsp-treemacs--hierarchy-item-children  (current-buffer) to)))
+          (lsp-request "callHierarchy/incomingCalls" (list :item item)))))
+
+(with-current-buffer "DemoApplication.java"
+  (display-buffer-in-side-window
+   (lsp-treemacs--show-references
+    (-map (-lambda ((item &as &hash "name" "kind" "detail"))
+            (list :label (format "%s - %s" name detail)
+                  :key name
+                  :icon (lsp-treemacs--symbol-kind->icon kind)
+                  :children (-partial #'lsp-treemacs--hierarchy-item-children (current-buffer) item)))
+          (lsp-request "textDocument/prepareCallHierarchy" (lsp--text-document-position-params)))
+    "Call Hierarchy"
+    nil)
+   nil))
+
+
+
 
 (provide 'lsp-treemacs)
 ;;; lsp-treemacs.el ends here
