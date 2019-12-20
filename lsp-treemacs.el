@@ -1217,6 +1217,7 @@
            result)))
        :mode 'detached))))
 
+;;;###autoload
 (defun lsp-treemacs-call-hierarchy (outgoing)
   (interactive "P")
   (unless (lsp--find-workspaces-for "textDocument/prepareCallHierarchy")
