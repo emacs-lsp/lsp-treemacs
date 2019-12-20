@@ -1026,8 +1026,7 @@
   "Return a xref-item from a RANGE in FILENAME."
   (-let* ((pos-start (gethash "start" range))
           (pos-end (gethash "end" range))
-          (point (lsp--position-to-point pos-start))
-          (line (lsp-treemacs--extract-line point))
+          (line (lsp-treemacs--extract-line (lsp--position-to-point pos-start)))
           (start (gethash "character" pos-start))
           (line-number (gethash "line" pos-start))
           (end (gethash "character" pos-end))
@@ -1047,7 +1046,7 @@
           :ret-action (lambda (&rest _)
                         (interactive)
                         (lsp-treemacs--open-file-in-mru filename)
-                        (goto-char point)
+                        (goto-char (lsp--position-to-point pos-start))
                         (run-hooks 'xref-after-jump-hook)))))
 
 (defun lsp-treemacs-initialize ()
@@ -1170,30 +1169,71 @@
 
 
 
-(defun lsp-treemacs--hierarchy-item-children (buffer item _)
-  (with-current-buffer buffer
-    (-map (-lambda ((node &as &hash "from" (to &as &hash "name" "kind" "detail")))
-            (list :label (format "%s - %s" name detail)
-                  :icon (lsp-treemacs--symbol-kind->icon kind)
-                  :key name
-                  :children (-partial #'lsp-treemacs--hierarchy-item-children  (current-buffer) to)))
-          (lsp-request "callHierarchy/incomingCalls" (list :item item)))))
+(defmacro lsp-treeemacs-wcb-unless-killed (buffer &rest body)
+  "`with-current-buffer' unless buffer killed."
+  (declare (indent 1) (debug t))
+  `(when (buffer-live-p (get-buffer ,buffer))
+     (with-current-buffer ,buffer
+       ,@body)))
 
-(with-current-buffer "DemoApplication.java"
-  (display-buffer-in-side-window
-   (lsp-treemacs--show-references
-    (-map (-lambda ((item &as &hash "name" "kind" "detail"))
-            (list :label (format "%s - %s" name detail)
-                  :key name
-                  :icon (lsp-treemacs--symbol-kind->icon kind)
-                  :children (-partial #'lsp-treemacs--hierarchy-item-children (current-buffer) item)))
-          (lsp-request "textDocument/prepareCallHierarchy" (lsp--text-document-position-params)))
-    "Call Hierarchy"
-    nil)
-   nil))
+(defun lsp-treemacs--call-hierarchy-children (buffer method key node)
+  (-let [(&plist :item :store) node]
+    (if (gethash "done?" store)
+        (gethash "result" store)
+      (with-current-buffer buffer
+        (lsp-request-async
+         method (list :item item)
+         (lambda (result)
+           (puthash "done?" t store)
+           (puthash "result"
+                    (-map
+                     (-lambda ((node &as &hash key (child-item &as &hash "name" "kind" "detail" "selectionRange" (&hash "start") "uri")))
+                       (list :label (concat name (when detail
+                                                   (propertize (concat " - " detail) 'face 'lsp-lens-face)))
+                             :icon (lsp-treemacs--symbol-kind->icon kind)
+                             :key name
+                             :children (-partial #'lsp-treemacs--call-hierarchy-children buffer method key)
+                             :store (ht)
+                             :ret-action (lambda (&rest _)
+                                           (interactive)
+                                           (lsp-treemacs--open-file-in-mru (lsp--uri-to-path uri))
+                                           (goto-char (lsp--position-to-point start))
+                                           (run-hooks 'xref-after-jump-hook))
+                             :item child-item))
+                     result)
+                    store)
+           (lsp-treeemacs-wcb-unless-killed "*Call Hierarchy*"
+             (lsp-treemacs-generic-refresh)))
+         :mode 'detached))
+      `((:label ,(propertize "Loading..." 'face 'shadow)
+                :icon-literal " "
+                :key "Loading...")))))
+
+(defun lsp-treemacs-call-hierarchy (outgoing)
+  (interactive "P")
+  (let ((buffer (current-buffer)))
+    (display-buffer-in-side-window
+     (lsp-treemacs--show-references
+      (-map (-lambda ((item &as &hash "name" "kind" "detail"))
+              (list :label (concat name (when detail
+                                          (propertize (concat " - " detail) 'face 'lsp-lens-face)))
+                    :key name
+                    :icon (lsp-treemacs--symbol-kind->icon kind)
+                    :children (-partial #'lsp-treemacs--call-hierarchy-children
+                                        buffer
+                                        (if outgoing "callHierarchy/outgoingCalls"
+                                          "callHierarchy/incomingCalls")
+                                        (if outgoing "to" "from"))
+                    :store (ht)
+                    :item item))
+            (lsp-request "textDocument/prepareCallHierarchy"
+                         (lsp--text-document-position-params)))
+      (concat (if outgoing "Outgoing" "Incoming") " Call Hierarchy")
+      nil
+      "*Call Hierarchy*")
+     nil)))
 
 
-
 
 (provide 'lsp-treemacs)
 ;;; lsp-treemacs.el ends here
