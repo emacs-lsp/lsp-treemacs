@@ -150,7 +150,7 @@
                 (goto-char (point-min))
                 (forward-line (lsp-diagnostic-line diag))
                 (lsp-execute-code-action-by-kind "quickfix")))))
-      (user-error "Not no a diagnostic"))))
+      (user-error "Not on a diagnostic"))))
 
 (defun lsp-treemacs-cycle-severity ()
   "Cycle through the severity levels shown in the errors list"
