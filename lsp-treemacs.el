@@ -1173,6 +1173,8 @@
 
 ;;;###autoload
 (defun lsp-treemacs-references (arg)
+  "Show the references for the symbol at point.
+With a prefix argument, expand the tree of references automatically."
   (interactive "P")
   (lsp-treemacs--do-search "textDocument/references"
                            `(:context (:includeDeclaration t) ,@(lsp--text-document-position-params))
@@ -1181,6 +1183,8 @@
 
 ;;;###autoload
 (defun lsp-treemacs-implementations (arg)
+  "Show the implementations for the symbol at point.
+With a prefix argument, expand the tree of implementations automatically."
   (interactive "P")
   (lsp-treemacs--do-search "textDocument/implementation"
                            (lsp--text-document-position-params)
@@ -1219,6 +1223,8 @@
 
 ;;;###autoload
 (defun lsp-treemacs-call-hierarchy (outgoing)
+  "Show the incoming call hierarchy for the symbol at point.
+With a prefix argument, show the outgoing call hierarchy."
   (interactive "P")
   (unless (lsp--find-workspaces-for "textDocument/prepareCallHierarchy")
     (user-error "Call hierarchy not supported by the current servers: %s"
