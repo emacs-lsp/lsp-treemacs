@@ -331,9 +331,6 @@
   :keymap lsp-treemacs-error-list-mode-map
   :group 'lsp-treeemacs)
 
-(define-derived-mode lsp-treemacs-errors-mode treemacs-mode "LSP Errors View"
-  "A major mode for displaying LSP Errors.")
-
 ;;;###autoload
 (defun lsp-treemacs-errors-list ()
   "Display error list."
@@ -348,7 +345,7 @@
       (select-window window)
       (set-window-dedicated-p window t)
       (treemacs-initialize)
-      (lsp-treemacs-errors-mode)
+      (lsp-treemacs--set-mode-line-format buffer " LSP Errors View ")
       (lsp-treemacs-error-list-mode 1)
 
       (setq-local treemacs-default-visit-action 'treemacs-RET-action)
@@ -780,9 +777,6 @@
           (lsp--info "Refresh completed")))
     (error)))
 
-(define-derived-mode lsp-treemacs-java-deps-mode treemacs-mode "Java Dependencies"
-  "A major mode for displaying Java Dependencies.")
-
 ;;;###autoload
 (defun lsp-treemacs-java-deps-list ()
   "Display error list."
@@ -796,7 +790,7 @@
       (select-window window)
       (set-window-dedicated-p window t)
       (treemacs-initialize)
-      (lsp-treemacs-java-deps-mode)
+      (lsp-treemacs--set-mode-line-format buffer " Java Dependencies ")
       (lsp-treemacs-deps-list-mode t)
 
       (setq-local treemacs-space-between-root-nodes nil)
