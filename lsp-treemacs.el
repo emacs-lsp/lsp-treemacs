@@ -949,7 +949,7 @@
                                      `((:label ,(propertize "Loading..." 'face 'shadow)
                                                :icon-literal " "
                                                :key "Loading...")))
-                     ((t children))))
+                     (t children)))
   :ret-action #'lsp-treemacs-perform-ret-action
   :render-action
   (-let [(&plist :children :label :key :children-async) item]
