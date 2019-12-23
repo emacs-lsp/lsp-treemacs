@@ -556,7 +556,7 @@
    (lsp-treemacs--symbols->tree
     lsp-treemacs--symbols
     nil)
-   "LSP Symbols"
+   " LSP Symbols "
    (and lsp-treemacs--symbols (> 30 (length lsp-treemacs--symbols)))
    "*LSP Symbols List*" ))
 
