@@ -1139,37 +1139,53 @@
                                    (lsp-treemacs--open-file-in-mru path)))))))
 
 (defun lsp-treemacs--show-references (tree title expand? &optional buffer-name)
-  (with-current-buffer (get-buffer-create (or buffer-name "*LSP Lookup*"))
-    (lsp-treemacs-initialize)
-    (setq-local lsp-treemacs-tree tree)
-    (setq-local face-remapping-alist '((button . default)))
-    (lsp-treemacs-generic-refresh)
-    (when expand? (lsp-treemacs--expand 'LSP-Generic))
-    (setq-local mode-name title)
-    (current-buffer)))
+  (let ((search-buffer (get-buffer-create (or buffer-name "*LSP Lookup*"))))
+    (with-current-buffer search-buffer
+      (lsp-treemacs-initialize)
+      (lsp-treemacs--set-mode-line-format search-buffer title)
+      (setq-local lsp-treemacs-tree tree)
+      (setq-local face-remapping-alist '((button . default)))
+      (lsp-treemacs-generic-refresh)
+      (when expand? (lsp-treemacs--expand 'LSP-Generic))
+      (current-buffer))))
+
+(defun lsp-treemacs--set-mode-line-format (buffer title)
+  "Set the mode line format of BUFFER to TITLE.
+This function sets the `mode-name' or `mode-line-format'
+depending on if a custom mode line is detected."
+  (with-current-buffer buffer
+    (cond ((or (fboundp 'spaceline-install)
+               (memq 'moody-mode-line-buffer-identification
+                     (default-value 'mode-line-format))
+               (and (fboundp 'doom-modeline)
+                    (fboundp 'doom-modeline-def-modeline)))
+           (setq mode-name title))
+          (t
+           (setq mode-line-format title)))))
 
 (defun lsp-treemacs--do-search (method params title expand?)
-  (display-buffer-in-side-window (get-buffer-create "*LSP Lookup*")
-                                 '((side . bottom)))
-  (lsp-request-async
-   method
-   params
-   (lambda (refs)
-     (setq-local mode-name "Rendering results...")
-     (lsp-with-cached-filetrue-name
-      (let ((lsp-file-truename-cache (ht)))
-        (lsp-treemacs--show-references (lsp-treemacs--handle-references refs)
-                                       (format title (length refs))
-                                       expand?)))
-     (lsp--info "Refresh completed!"))
-   :mode 'detached
-   :cancel-token :treemacs-lookup)
+  (let ((search-buffer (get-buffer-create "*LSP Lookup*")))
+    (display-buffer-in-side-window search-buffer
+                                   '((side . bottom)))
+    (lsp-request-async
+     method
+     params
+     (lambda (refs)
+       (lsp-treemacs--set-mode-line-format search-buffer " Rendering results... ")
+       (lsp-with-cached-filetrue-name
+        (let ((lsp-file-truename-cache (ht)))
+          (lsp-treemacs--show-references (lsp-treemacs--handle-references refs)
+                                         (format title (length refs))
+                                         expand?)))
+       (lsp--info "Refresh completed!"))
+     :mode 'detached
+      :cancel-token :treemacs-lookup)
 
-  (with-current-buffer "*LSP Lookup*"
-    (lsp-treemacs-initialize)
-    (setq-local mode-name "Loading...")
-    (setq-local lsp-treemacs-tree nil)
-    (lsp-treemacs-generic-refresh)))
+    (with-current-buffer search-buffer
+      (lsp-treemacs-initialize)
+      (lsp-treemacs--set-mode-line-format search-buffer " Loading... ")
+      (setq-local lsp-treemacs-tree nil)
+      (lsp-treemacs-generic-refresh))))
 
 ;;;###autoload
 (defun lsp-treemacs-references (arg)
@@ -1178,7 +1194,7 @@ With a prefix argument, expand the tree of references automatically."
   (interactive "P")
   (lsp-treemacs--do-search "textDocument/references"
                            `(:context (:includeDeclaration t) ,@(lsp--text-document-position-params))
-                           "Found %s references"
+                           " Found %s references "
                            arg))
 
 ;;;###autoload
@@ -1188,7 +1204,7 @@ With a prefix argument, expand the tree of implementations automatically."
   (interactive "P")
   (lsp-treemacs--do-search "textDocument/implementation"
                            (lsp--text-document-position-params)
-                           "Found %s implementations"
+                           " Found %s implementations "
                            arg))
 
 
