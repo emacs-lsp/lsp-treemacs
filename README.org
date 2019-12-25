@@ -7,7 +7,7 @@
     - [[#screenshot][Screenshot]]
   - [[#lsp-treemacs-symbols-list][lsp-treemacs-symbols-list]]
     - [[#screenshot-1][Screenshot]]
-  - [[#lsp-treemacs-referenceslsp-treemacs-implementaions][lsp-treemacs-references/lsp-treemacs-implementaions]]
+  - [[#lsp-treemacs-referenceslsp-treemacs-implementations][lsp-treemacs-references/lsp-treemacs-implementations]]
     - [[#screenshot-2][Screenshot]]
   - [[#lsp-treemacs-call-hierarchy][lsp-treemacs-call-hierarchy]]
     - [[#screenshot-3][Screenshot]]
@@ -36,7 +36,7 @@
    Displays symbols information.
 *** Screenshot
     [[file:screenshots/symbols-list.gif]]
-** lsp-treemacs-references/lsp-treemacs-implementaions
+** lsp-treemacs-references/lsp-treemacs-implementations
   Display references/implementations using tree view:
 *** Screenshot
     [[file:screenshots/references.gif]]
