@@ -925,13 +925,16 @@
      (with-current-buffer ,buffer
        ,@body)))
 
+(defvar lsp-treemacs-force-update nil)
+
 (treemacs-define-expandable-node node
   :icon-open-form (lsp-treemacs--generic-icon (treemacs-button-get node :item) t)
   :icon-closed-form (lsp-treemacs--generic-icon (treemacs-button-get node :item) nil)
   :query-function (-let [(item &as &plist :children :children-async :key) (treemacs-button-get node :item)]
                     (cond
                      ((functionp children) (funcall children item))
-                     ((get-text-property 0 :done? key) (get-text-property 0 :async-result key))
+                     ((and (get-text-property 0 :done? key)
+                           (not lsp-treemacs-force-update)) (get-text-property 0 :async-result key))
                      (children-async (-let [buffer (current-buffer)]
                                        (funcall children-async
                                                 item
@@ -940,9 +943,10 @@
                                                   (put-text-property 0 1 :async-result result key)
                                                   (lsp-treeemacs-wcb-unless-killed buffer
                                                     (lsp-treemacs-generic-refresh)))))
-                                     `((:label ,(propertize "Loading..." 'face 'shadow)
-                                               :icon-literal " "
-                                               :key "Loading...")))
+                                     (or (get-text-property 0 :done? key)
+                                         `((:label ,(propertize "Loading..." 'face 'shadow)
+                                                   :icon-literal " "
+                                                   :key "Loading..."))))
                      (t children)))
   :ret-action #'lsp-treemacs-perform-ret-action
   :render-action
