@@ -552,7 +552,7 @@
   (setq-local header-line-format
               (unless lsp-treemacs--symbols
                 (propertize "No symbol information." 'face 'shadow)))
-  (lsp-treemacs--show-references
+  (lsp-treemacs-render
    (lsp-treemacs--symbols->tree
     lsp-treemacs--symbols
     nil)
@@ -918,31 +918,46 @@
       (funcall-interactively action)
     (treemacs-pulse-on-failure "No ret action defined.")))
 
-(defmacro lsp-treeemacs-wcb-unless-killed (buffer &rest body)
+(defmacro lsp-treemacs-wcb-unless-killed (buffer &rest body)
   "`with-current-buffer' unless buffer killed."
   (declare (indent 1) (debug t))
   `(when (buffer-live-p (get-buffer ,buffer))
      (with-current-buffer ,buffer
        ,@body)))
 
+(defvar lsp-treemacs-use-cache nil)
+(defvar-local lsp-treemacs--generic-cache nil)
+
+(defun lsp-treemacs--node-key (node)
+  (let ((result (list (treemacs-button-get node :key)))
+        (parent node))
+    (while (setq parent (treemacs-button-get parent :parent))
+      (setq result (cons (treemacs-button-get parent :key) result)))
+    result))
+
 (treemacs-define-expandable-node node
   :icon-open-form (lsp-treemacs--generic-icon (treemacs-button-get node :item) t)
   :icon-closed-form (lsp-treemacs--generic-icon (treemacs-button-get node :item) nil)
-  :query-function (-let [(item &as &plist :children :children-async :key) (treemacs-button-get node :item)]
+  :query-function (-let (((item &as &plist :children :children-async :key :variables-reference) (treemacs-button-get node :item))
+                         (node-key (lsp-treemacs--node-key node)))
                     (cond
                      ((functionp children) (funcall children item))
-                     ((get-text-property 0 :done? key) (get-text-property 0 :async-result key))
-                     (children-async (-let [buffer (current-buffer)]
-                                       (funcall children-async
-                                                item
-                                                (lambda (result)
-                                                  (put-text-property 0 1 :done? t key)
-                                                  (put-text-property 0 1 :async-result result key)
-                                                  (lsp-treeemacs-wcb-unless-killed buffer
-                                                    (lsp-treemacs-generic-refresh)))))
-                                     `((:label ,(propertize "Loading..." 'face 'shadow)
-                                               :icon-literal " "
-                                               :key "Loading...")))
+                     ((and (gethash node-key lsp-treemacs--generic-cache)
+                           lsp-treemacs-use-cache)
+                      (cl-rest (gethash node-key lsp-treemacs--generic-cache)))
+                     (children-async
+                      (-let [buffer (current-buffer)]
+                        (funcall children-async
+                                 item
+                                 (lambda (result)
+                                   (lsp-treemacs-wcb-unless-killed buffer
+                                     (puthash node-key (cons t result) lsp-treemacs--generic-cache)
+                                     (let ((lsp-treemacs-use-cache t))
+                                       (lsp-treemacs-generic-refresh))))))
+                      (or (cl-rest (gethash node-key lsp-treemacs--generic-cache))
+                          `((:label ,(propertize "Loading..." 'face 'shadow)
+                                    :icon-literal " "
+                                    :key "Loading..."))))
                      (t children)))
   :ret-action #'lsp-treemacs-perform-ret-action
   :render-action
@@ -1132,16 +1147,20 @@
                                    (interactive)
                                    (lsp-treemacs--open-file-in-mru path)))))))
 
-(defun lsp-treemacs--show-references (tree title expand? &optional buffer-name)
+(defun lsp-treemacs-render (tree title expand? &optional buffer-name)
   (let ((search-buffer (get-buffer-create (or buffer-name "*LSP Lookup*"))))
     (with-current-buffer search-buffer
       (lsp-treemacs-initialize)
-      (lsp-treemacs--set-mode-line-format search-buffer title)
+      (setq-local treemacs-default-visit-action 'treemacs-RET-action)
+      (setq-local lsp-treemacs--generic-cache (or lsp-treemacs--generic-cache (ht)))
       (setq-local lsp-treemacs-tree tree)
       (setq-local face-remapping-alist '((button . default)))
+      (lsp-treemacs--set-mode-line-format search-buffer title)
       (lsp-treemacs-generic-refresh)
       (when expand? (lsp-treemacs--expand 'LSP-Generic))
       (current-buffer))))
+
+(defalias 'lsp-treemacs--show-references 'lsp-treemacs-render)
 
 (defun lsp-treemacs--set-mode-line-format (buffer title)
   "Set the mode line format of BUFFER to TITLE.
@@ -1168,12 +1187,12 @@ depending on if a custom mode line is detected."
        (lsp-treemacs--set-mode-line-format search-buffer " Rendering results... ")
        (lsp-with-cached-filetrue-name
         (let ((lsp-file-truename-cache (ht)))
-          (lsp-treemacs--show-references (lsp-treemacs--handle-references refs)
+          (lsp-treemacs-render (lsp-treemacs--handle-references refs)
                                          (format title (length refs))
                                          expand?)))
        (lsp--info "Refresh completed!"))
      :mode 'detached
-      :cancel-token :treemacs-lookup)
+     :cancel-token :treemacs-lookup)
 
     (with-current-buffer search-buffer
       (lsp-treemacs-initialize)
@@ -1242,7 +1261,7 @@ With a prefix argument, show the outgoing call hierarchy."
   (let ((buffer (current-buffer)))
     (select-window
      (display-buffer-in-side-window
-      (lsp-treemacs--show-references
+      (lsp-treemacs-render
        (seq-map
         (-lambda ((item &as &hash "name" "kind" "detail"))
           (list :label (concat name (when detail
