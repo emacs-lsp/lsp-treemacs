@@ -909,6 +909,7 @@
     (symbol-name (read (url-unhex-string jar-file )))))
 
 (defvar-local lsp-treemacs-tree nil)
+(defvar-local lsp-treemacs--right-click-actions nil)
 
 (defun lsp-treemacs-perform-ret-action (&rest _)
   (interactive)
@@ -1102,9 +1103,9 @@
     (run-with-idle-timer
      0.001 nil
      (lambda ()
-       (-when-let* ((actions (-some-> (treemacs-node-at-point)
-                               (button-get :item)
-                               (plist-get :actions)))
+       (-when-let* ((actions (if-let (node (treemacs-node-at-point))
+                                 (plist-get (button-get node :item) :actions)
+                               lsp-treemacs--right-click-actions))
                     (menu (easy-menu-create-menu nil actions))
                     (choice (x-popup-menu event menu)))
          (when choice (call-interactively (lookup-key menu (apply 'vector choice))))
@@ -1147,11 +1148,12 @@
                                    (interactive)
                                    (lsp-treemacs--open-file-in-mru path)))))))
 
-(defun lsp-treemacs-render (tree title expand? &optional buffer-name)
+(defun lsp-treemacs-render (tree title expand? &optional buffer-name right-click-actions)
   (let ((search-buffer (get-buffer-create (or buffer-name "*LSP Lookup*"))))
     (with-current-buffer search-buffer
       (lsp-treemacs-initialize)
       (setq-local treemacs-default-visit-action 'treemacs-RET-action)
+      (setq-local lsp-treemacs--right-click-actions right-click-actions)
       (setq-local lsp-treemacs--generic-cache (or lsp-treemacs--generic-cache (ht)))
       (setq-local lsp-treemacs-tree tree)
       (setq-local face-remapping-alist '((button . default)))
@@ -1188,8 +1190,8 @@ depending on if a custom mode line is detected."
        (lsp-with-cached-filetrue-name
         (let ((lsp-file-truename-cache (ht)))
           (lsp-treemacs-render (lsp-treemacs--handle-references refs)
-                                         (format title (length refs))
-                                         expand?)))
+                               (format title (length refs))
+                               expand?)))
        (lsp--info "Refresh completed!"))
      :mode 'detached
      :cancel-token :treemacs-lookup)
