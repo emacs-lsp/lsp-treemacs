@@ -813,13 +813,9 @@ METALS-CLIENT."
 be sent during initialisation. Add to our custom capabilities so
 that this will be sent during initial connection."
   (interactive)
-  (let ((custom-capabilities
-         (append (lsp--client-custom-capabilities metals-client)
-                 `((experimental
-                    (treeViewProvider . ,(if enable?
-                                             t
-                                           :json-false)))))))
-    (setf (lsp--client-custom-capabilities metals-client) custom-capabilities)))
+  (let* ((custom-capabilities (lsp--client-custom-capabilities metals-client))
+          (experimental (cl-find-if (lambda (e) (eq (car e) 'experimental)) custom-capabilities)))
+    (nconc (cdr experimental) `((treeViewProvider . ,(if enable? t :json-false))))))
 
 (defun lsp-metals-treeview (&optional workspace)
   "Display the Metals treeview window for the WORKSPACE (optional).  If
