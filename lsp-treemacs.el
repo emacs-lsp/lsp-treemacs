@@ -1179,9 +1179,9 @@ depending on if a custom mode line is detected."
            (setq mode-line-format title)))))
 
 (defun lsp-treemacs--do-search (method params title expand?)
-  (let ((search-buffer (get-buffer-create "*LSP Lookup*")))
-    (display-buffer-in-side-window search-buffer
-                                   '((side . bottom)))
+  (let ((search-buffer (get-buffer-create "*LSP Lookup*"))
+        (window (display-buffer-in-side-window (get-buffer-create "*LSP Lookup*")
+                                               '((side . bottom)))))
     (lsp-request-async
      method
      params
@@ -1195,6 +1195,9 @@ depending on if a custom mode line is detected."
        (lsp--info "Refresh completed!"))
      :mode 'detached
      :cancel-token :treemacs-lookup)
+
+    (select-window window)
+    (set-window-dedicated-p window t)
 
     (with-current-buffer search-buffer
       (lsp-treemacs-initialize)
