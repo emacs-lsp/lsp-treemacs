@@ -1148,7 +1148,7 @@
                                    (interactive)
                                    (lsp-treemacs--open-file-in-mru path)))))))
 
-(defun lsp-treemacs-render (tree title prefix-args &optional buffer-name right-click-actions)
+(defun lsp-treemacs-render (tree title expand? &optional buffer-name right-click-actions)
   (let ((search-buffer (get-buffer-create (or buffer-name "*LSP Lookup*"))))
     (with-current-buffer search-buffer
       (lsp-treemacs-initialize)
@@ -1159,7 +1159,7 @@
       (setq-local face-remapping-alist '((button . default)))
       (lsp-treemacs--set-mode-line-format search-buffer title)
       (lsp-treemacs-generic-refresh)
-      (when (equal prefix-args '(4))
+      (when (equal expand? '(4))
         (lsp-treemacs--expand 'LSP-Generic))
       (current-buffer))))
 
@@ -1197,8 +1197,7 @@ depending on if a custom mode line is detected."
      :mode 'detached
      :cancel-token :treemacs-lookup)
 
-    (when (or (null prefix-args)
-              (equal prefix-args '(4)))
+    (unless (zerop prefix-args)
       (select-window window)
       (set-window-dedicated-p window t))
 
