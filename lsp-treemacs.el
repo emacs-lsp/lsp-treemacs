@@ -1196,8 +1196,9 @@ depending on if a custom mode line is detected."
      :mode 'detached
      :cancel-token :treemacs-lookup)
 
-    (select-window window)
-    (set-window-dedicated-p window t)
+    (when expand?
+      (select-window window)
+      (set-window-dedicated-p window t))
 
     (with-current-buffer search-buffer
       (lsp-treemacs-initialize)
@@ -1208,7 +1209,7 @@ depending on if a custom mode line is detected."
 ;;;###autoload
 (defun lsp-treemacs-references (arg)
   "Show the references for the symbol at point.
-With a prefix argument, expand the tree of references automatically."
+With a prefix argument, select the new window and expand the tree of references automatically."
   (interactive "P")
   (lsp-treemacs--do-search "textDocument/references"
                            `(:context (:includeDeclaration t) ,@(lsp--text-document-position-params))
@@ -1218,7 +1219,7 @@ With a prefix argument, expand the tree of references automatically."
 ;;;###autoload
 (defun lsp-treemacs-implementations (arg)
   "Show the implementations for the symbol at point.
-With a prefix argument, expand the tree of implementations automatically."
+With a prefix argument, select the new window expand the tree of implementations automatically."
   (interactive "P")
   (lsp-treemacs--do-search "textDocument/implementation"
                            (lsp--text-document-position-params)
