@@ -1159,8 +1159,7 @@
       (setq-local face-remapping-alist '((button . default)))
       (lsp-treemacs--set-mode-line-format search-buffer title)
       (lsp-treemacs-generic-refresh)
-      (when (equal expand? '(4))
-        (lsp-treemacs--expand 'LSP-Generic))
+      (when expand? (lsp-treemacs--expand 'LSP-Generic))
       (current-buffer))))
 
 (defalias 'lsp-treemacs--show-references 'lsp-treemacs-render)
@@ -1192,12 +1191,12 @@ depending on if a custom mode line is detected."
         (let ((lsp-file-truename-cache (ht)))
           (lsp-treemacs-render (lsp-treemacs--handle-references refs)
                                (format title (length refs))
-                               prefix-args)))
+                               (and prefix-args (not (equal prefix-args 0))))))
        (lsp--info "Refresh completed!"))
      :mode 'detached
      :cancel-token :treemacs-lookup)
 
-    (unless (zerop prefix-args)
+    (unless (equal prefix-args 0)
       (select-window window)
       (set-window-dedicated-p window t))
 
