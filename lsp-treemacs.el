@@ -1159,7 +1159,8 @@
       (setq-local face-remapping-alist '((button . default)))
       (lsp-treemacs--set-mode-line-format search-buffer title)
       (lsp-treemacs-generic-refresh)
-      (when expand? (lsp-treemacs--expand 'LSP-Generic))
+      (when (equal expand? '(4))
+        (lsp-treemacs--expand 'LSP-Generic))
       (current-buffer))))
 
 (defalias 'lsp-treemacs--show-references 'lsp-treemacs-render)
@@ -1178,10 +1179,10 @@ depending on if a custom mode line is detected."
           (t
            (setq mode-line-format title)))))
 
-(defun lsp-treemacs--do-search (method params title expand?)
-  (let ((search-buffer (get-buffer-create "*LSP Lookup*")))
-    (display-buffer-in-side-window search-buffer
-                                   '((side . bottom)))
+(defun lsp-treemacs--do-search (method params title prefix-args)
+  (let ((search-buffer (get-buffer-create "*LSP Lookup*"))
+        (window (display-buffer-in-side-window (get-buffer-create "*LSP Lookup*")
+                                               '((side . bottom)))))
     (lsp-request-async
      method
      params
@@ -1191,10 +1192,14 @@ depending on if a custom mode line is detected."
         (let ((lsp-file-truename-cache (ht)))
           (lsp-treemacs-render (lsp-treemacs--handle-references refs)
                                (format title (length refs))
-                               expand?)))
+                               prefix-args)))
        (lsp--info "Refresh completed!"))
      :mode 'detached
      :cancel-token :treemacs-lookup)
+
+    (unless (zerop prefix-args)
+      (select-window window)
+      (set-window-dedicated-p window t))
 
     (with-current-buffer search-buffer
       (lsp-treemacs-initialize)
@@ -1205,7 +1210,7 @@ depending on if a custom mode line is detected."
 ;;;###autoload
 (defun lsp-treemacs-references (arg)
   "Show the references for the symbol at point.
-With a prefix argument, expand the tree of references automatically."
+With a prefix argument, select the new window and expand the tree of references automatically."
   (interactive "P")
   (lsp-treemacs--do-search "textDocument/references"
                            `(:context (:includeDeclaration t) ,@(lsp--text-document-position-params))
@@ -1215,7 +1220,7 @@ With a prefix argument, expand the tree of references automatically."
 ;;;###autoload
 (defun lsp-treemacs-implementations (arg)
   "Show the implementations for the symbol at point.
-With a prefix argument, expand the tree of implementations automatically."
+With a prefix argument, select the new window expand the tree of implementations automatically."
   (interactive "P")
   (lsp-treemacs--do-search "textDocument/implementation"
                            (lsp--text-document-position-params)
