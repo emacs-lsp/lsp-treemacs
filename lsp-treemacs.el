@@ -414,7 +414,7 @@
     (treemacs-create-icon :file "package.png" :extensions (package) :fallback "-")
     (treemacs-create-icon :file "project.png" :extensions (java-project) :fallback "-")))
 
-(defun lsp-treemacs--symbol-kind->icon (kind)
+(defun lsp-treemacs-symbol-kind->icon (kind)
   (cl-case kind
     (1 'document)
     (2  'namespace)
@@ -450,7 +450,7 @@
      (if (seq-empty-p children)
          "   "
        (if expanded  " ▾ " " ▸ "))
-     (treemacs-get-icon-value (lsp-treemacs--symbol-kind->icon kind)
+     (treemacs-get-icon-value (lsp-treemacs-symbol-kind->icon kind)
                               nil
                               lsp-treemacs-theme))))
 
@@ -512,7 +512,7 @@
                           (when (string=  parent-key container-name)
                             `(:label ,name
                                      :key ,name
-                                     :icon ,(lsp-treemacs--symbol-kind->icon kind)
+                                     :icon ,(lsp-treemacs-symbol-kind->icon kind)
                                      ,@(when (-first (-lambda ((&hash "containerName" parent))
                                                        (string= name parent))
                                                      rest)
@@ -533,7 +533,7 @@
                                     (propertize name 'face 'lsp-face-semhl-deprecated)
                                   name)
                                :key ,name
-                               :icon ,(lsp-treemacs--symbol-kind->icon kind)
+                               :icon ,(lsp-treemacs-symbol-kind->icon kind)
                                :kind ,kind
                                :location (gethash "start" range)
                                ,@(unless (seq-empty-p children)
@@ -1148,6 +1148,16 @@
                                    (interactive)
                                    (lsp-treemacs--open-file-in-mru path)))))))
 
+(defmacro lsp-treemacs-define-action (name keys &rest body)
+  (declare (doc-string 3) (indent 2))
+  `(defun ,name (&rest args)
+     ,(format "Code action %s" name)
+     (interactive)
+     (if-let (node (treemacs-node-at-point))
+         (-let [,(cons '&plist keys) (button-get node :item)]
+           ,@body)
+       (treemacs-pulse-on-failure "No node at point"))))
+
 (defun lsp-treemacs-render (tree title expand? &optional buffer-name right-click-actions)
   (let ((search-buffer (get-buffer-create (or buffer-name "*LSP Lookup*"))))
     (with-current-buffer search-buffer
@@ -1180,8 +1190,7 @@ depending on if a custom mode line is detected."
 
 (defun lsp-treemacs--do-search (method params title prefix-args)
   (let ((search-buffer (get-buffer-create "*LSP Lookup*"))
-        (window (display-buffer-in-side-window (get-buffer-create "*LSP Lookup*")
-                                               '((side . bottom)))))
+        (window (display-buffer (get-buffer-create "*LSP Lookup*"))))
     (lsp-request-async
      method
      params
@@ -1198,7 +1207,8 @@ depending on if a custom mode line is detected."
 
     (unless (equal prefix-args 0)
       (select-window window)
-      (set-window-dedicated-p window t))
+      ;; (set-window-dedicated-p window t)
+      )
 
     (with-current-buffer search-buffer
       (lsp-treemacs-initialize)
@@ -1230,62 +1240,62 @@ With a prefix argument, select the new window expand the tree of implementations
 ;; Call hierarchy.
 
 (defun lsp-treemacs--call-hierarchy-children (buffer method key node callback)
-  (-let [item (plist-get node :item)]
-    (with-current-buffer buffer
-      (lsp-request-async
-       method
-       (list :item item)
-       (lambda (result)
-         (funcall
-          callback
-          (seq-map
-           (-lambda ((node &as &hash key (child-item &as &hash "name"
-                                                     "kind" "detail" "selectionRange" (&hash "start") "uri")))
-             (let ((label (concat name (when detail
-                                         (propertize (concat " - " detail) 'face 'lsp-lens-face)))))
-               (list :label label
-                     :key label
-                     :icon (lsp-treemacs--symbol-kind->icon kind)
-                     :children-async (-partial #'lsp-treemacs--call-hierarchy-children buffer method key)
-                     :ret-action (lambda (&rest _)
-                                   (interactive)
-                                   (lsp-treemacs--open-file-in-mru (lsp--uri-to-path uri))
-                                   (goto-char (lsp--position-to-point start))
-                                   (run-hooks 'xref-after-jump-hook))
-                     :item child-item)))
-           result)))
-       :mode 'detached))))
+(-let [item (plist-get node :item)]
+  (with-current-buffer buffer
+    (lsp-request-async
+     method
+     (list :item item)
+     (lambda (result)
+       (funcall
+        callback
+        (seq-map
+         (-lambda ((node &as &hash key (child-item &as &hash "name"
+                                                   "kind" "detail" "selectionRange" (&hash "start") "uri")))
+           (let ((label (concat name (when detail
+                                       (propertize (concat " - " detail) 'face 'lsp-lens-face)))))
+             (list :label label
+                   :key label
+                   :icon (lsp-treemacs-symbol-kind->icon kind)
+                   :children-async (-partial #'lsp-treemacs--call-hierarchy-children buffer method key)
+                   :ret-action (lambda (&rest _)
+                                 (interactive)
+                                 (lsp-treemacs--open-file-in-mru (lsp--uri-to-path uri))
+                                 (goto-char (lsp--position-to-point start))
+                                 (run-hooks 'xref-after-jump-hook))
+                   :item child-item)))
+         result)))
+     :mode 'detached))))
 
 ;;;###autoload
 (defun lsp-treemacs-call-hierarchy (outgoing)
-  "Show the incoming call hierarchy for the symbol at point.
+"Show the incoming call hierarchy for the symbol at point.
 With a prefix argument, show the outgoing call hierarchy."
-  (interactive "P")
-  (unless (lsp--find-workspaces-for "textDocument/prepareCallHierarchy")
-    (user-error "Call hierarchy not supported by the current servers: %s"
-                (-map #'lsp--workspace-print (lsp-workspaces))))
-  (let ((buffer (current-buffer)))
-    (select-window
-     (display-buffer-in-side-window
-      (lsp-treemacs-render
-       (seq-map
-        (-lambda ((item &as &hash "name" "kind" "detail"))
-          (list :label (concat name (when detail
-                                      (propertize (concat " - " detail) 'face 'lsp-lens-face)))
-                :key name
-                :icon (lsp-treemacs--symbol-kind->icon kind)
-                :children-async (-partial
-                                 #'lsp-treemacs--call-hierarchy-children
-                                 buffer
-                                 (if outgoing "callHierarchy/outgoingCalls"
-                                   "callHierarchy/incomingCalls")
-                                 (if outgoing "to" "from"))
-                :item item))
-        (lsp-request "textDocument/prepareCallHierarchy"
-                     (lsp--text-document-position-params)))
-       (concat (if outgoing "Outgoing" "Incoming") " Call Hierarchy")
-       nil
-       "*Call Hierarchy*") nil))))
+(interactive "P")
+(unless (lsp--find-workspaces-for "textDocument/prepareCallHierarchy")
+  (user-error "Call hierarchy not supported by the current servers: %s"
+              (-map #'lsp--workspace-print (lsp-workspaces))))
+(let ((buffer (current-buffer)))
+  (select-window
+   (display-buffer-in-side-window
+    (lsp-treemacs-render
+     (seq-map
+      (-lambda ((item &as &hash "name" "kind" "detail"))
+        (list :label (concat name (when detail
+                                    (propertize (concat " - " detail) 'face 'lsp-lens-face)))
+              :key name
+              :icon (lsp-treemacs-symbol-kind->icon kind)
+              :children-async (-partial
+                               #'lsp-treemacs--call-hierarchy-children
+                               buffer
+                               (if outgoing "callHierarchy/outgoingCalls"
+                                 "callHierarchy/incomingCalls")
+                               (if outgoing "to" "from"))
+              :item item))
+      (lsp-request "textDocument/prepareCallHierarchy"
+                   (lsp--text-document-position-params)))
+     (concat (if outgoing "Outgoing" "Incoming") " Call Hierarchy")
+     nil
+     "*Call Hierarchy*") nil))))
 
 
 
