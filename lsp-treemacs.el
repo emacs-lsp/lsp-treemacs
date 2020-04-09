@@ -391,7 +391,7 @@
     (treemacs-create-icon :file "default_root_folder.png" :extensions (default-root-folder) :fallback "-")
     (treemacs-create-icon :file "file_type_class.png" :extensions ("class") :fallback "-")
     (treemacs-create-icon :file "file_type_jar.png" :extensions (file-type-jar) :fallback "-")
-    (treemacs-create-icon :file "file_type_flutter.png" :extensions ("flutter") :fallback "-")
+    (treemacs-create-icon :file "file_type_flutter.png" :extensions (flutter) :fallback "-")
     (treemacs-create-icon :file "folder-open.png" :extensions (folder-open) :fallback "-")
     (treemacs-create-icon :file "folder.png" :extensions (folder) :fallback "-")
     (treemacs-create-icon :file "folder_type_component_opened.png" :extensions (folder-type-component-opened) :fallback "-")
