@@ -856,7 +856,7 @@
         (treemacs-folders (->> (treemacs-current-workspace)
                                (treemacs-workspace->projects)
                                (-map #'treemacs-project->path)
-                               (-map #'lsp-cannonical-file-name))))
+                               (-map #'lsp-canonical-file-name))))
     (seq-do #'lsp-workspace-folders-remove (-difference lsp-folders treemacs-folders))
     (seq-do #'lsp-workspace-folders-add (-difference treemacs-folders lsp-folders))))
 
