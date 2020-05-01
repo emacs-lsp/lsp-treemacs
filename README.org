@@ -11,6 +11,7 @@
     - [[#screenshot-2][Screenshot]]
   - [[#lsp-treemacs-call-hierarchy][lsp-treemacs-call-hierarchy]]
     - [[#screenshot-3][Screenshot]]
+  - [[#lsp-treemacs-type-hierarchy][lsp-treemacs-type-hierarchy]]
   - [[#lsp-treemacs-deps-list][lsp-treemacs-deps-list]]
     - [[#commands-1][Commands]]
     - [[#screenshot-4][Screenshot]]
@@ -45,6 +46,8 @@
    Display call hierarchy. Use =C-u M-x lsp-treemacs-call-hierarchy= to display outgoing call hierarchy.
 *** Screenshot
     [[file:screenshots/call-hierarchy.gif]]
+** lsp-treemacs-type-hierarchy
+   Display type hierarchy.
 ** lsp-treemacs-deps-list
    Browse java dependencies, namespaces, files, etc.
 *** Commands

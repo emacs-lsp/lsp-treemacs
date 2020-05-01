@@ -1241,62 +1241,138 @@ With a prefix argument, select the new window expand the tree of implementations
 ;; Call hierarchy.
 
 (defun lsp-treemacs--call-hierarchy-children (buffer method key node callback)
-(-let [item (plist-get node :item)]
-  (with-current-buffer buffer
-    (lsp-request-async
-     method
-     (list :item item)
-     (lambda (result)
-       (funcall
-        callback
-        (seq-map
-         (-lambda ((node &as &hash key (child-item &as &hash "name"
-                                                   "kind" "detail" "selectionRange" (&hash "start") "uri")))
-           (let ((label (concat name (when detail
-                                       (propertize (concat " - " detail) 'face 'lsp-lens-face)))))
-             (list :label label
-                   :key label
-                   :icon (lsp-treemacs-symbol-kind->icon kind)
-                   :children-async (-partial #'lsp-treemacs--call-hierarchy-children buffer method key)
-                   :ret-action (lambda (&rest _)
-                                 (interactive)
-                                 (lsp-treemacs--open-file-in-mru (lsp--uri-to-path uri))
-                                 (goto-char (lsp--position-to-point start))
-                                 (run-hooks 'xref-after-jump-hook))
-                   :item child-item)))
-         result)))
-     :mode 'detached))))
+  (-let [item (plist-get node :item)]
+    (with-current-buffer buffer
+      (lsp-request-async
+       method
+       (list :item item)
+       (lambda (result)
+         (funcall
+          callback
+          (seq-map
+           (-lambda ((node &as &hash key (child-item &as &hash "name"
+                                                     "kind" "detail" "selectionRange" (&hash "start") "uri")))
+             (let ((label (concat name (when detail
+                                         (propertize (concat " - " detail) 'face 'lsp-lens-face)))))
+               (list :label label
+                     :key label
+                     :icon (lsp-treemacs-symbol-kind->icon kind)
+                     :children-async (-partial #'lsp-treemacs--call-hierarchy-children buffer method key)
+                     :ret-action (lambda (&rest _)
+                                   (interactive)
+                                   (lsp-treemacs--open-file-in-mru (lsp--uri-to-path uri))
+                                   (goto-char (lsp--position-to-point start))
+                                   (run-hooks 'xref-after-jump-hook))
+                     :item child-item)))
+           result)))
+       :mode 'detached))))
 
 ;;;###autoload
 (defun lsp-treemacs-call-hierarchy (outgoing)
-"Show the incoming call hierarchy for the symbol at point.
+  "Show the incoming call hierarchy for the symbol at point.
 With a prefix argument, show the outgoing call hierarchy."
-(interactive "P")
-(unless (lsp--find-workspaces-for "textDocument/prepareCallHierarchy")
-  (user-error "Call hierarchy not supported by the current servers: %s"
-              (-map #'lsp--workspace-print (lsp-workspaces))))
-(let ((buffer (current-buffer)))
-  (select-window
-   (display-buffer-in-side-window
-    (lsp-treemacs-render
-     (seq-map
-      (-lambda ((item &as &hash "name" "kind" "detail"))
-        (list :label (concat name (when detail
-                                    (propertize (concat " - " detail) 'face 'lsp-lens-face)))
-              :key name
-              :icon (lsp-treemacs-symbol-kind->icon kind)
-              :children-async (-partial
-                               #'lsp-treemacs--call-hierarchy-children
-                               buffer
-                               (if outgoing "callHierarchy/outgoingCalls"
-                                 "callHierarchy/incomingCalls")
-                               (if outgoing "to" "from"))
-              :item item))
-      (lsp-request "textDocument/prepareCallHierarchy"
-                   (lsp--text-document-position-params)))
-     (concat (if outgoing "Outgoing" "Incoming") " Call Hierarchy")
-     nil
-     "*Call Hierarchy*") nil))))
+  (interactive "P")
+  (unless (lsp--find-workspaces-for "textDocument/prepareCallHierarchy")
+    (user-error "Call hierarchy not supported by the current servers: %s"
+                (-map #'lsp--workspace-print (lsp-workspaces))))
+  (let ((buffer (current-buffer)))
+    (select-window
+     (display-buffer-in-side-window
+      (lsp-treemacs-render
+       (seq-map
+        (-lambda ((item &as &hash "name" "kind" "detail"))
+          (list :label (concat name (when detail
+                                      (propertize (concat " - " detail) 'face 'lsp-lens-face)))
+                :key name
+                :icon (lsp-treemacs-symbol-kind->icon kind)
+                :children-async (-partial
+                                 #'lsp-treemacs--call-hierarchy-children
+                                 buffer
+                                 (if outgoing "callHierarchy/outgoingCalls"
+                                   "callHierarchy/incomingCalls")
+                                 (if outgoing "to" "from"))
+                :item item))
+        (lsp-request "textDocument/prepareCallHierarchy"
+                     (lsp--text-document-position-params)))
+       (concat (if outgoing "Outgoing" "Incoming") " Call Hierarchy")
+       nil
+       "*Call Hierarchy*") nil))))
+
+
+
+;; Type hierarchy.
+
+(defconst lsp-treemacs--hierarchy-sub 0)
+(defconst lsp-treemacs--hierarchy-super 1)
+(defconst lsp-treemacs--hierarchy-both 2)
+
+(defun lsp-treemacs--type-hierarchy-render-nodes (result loaded? &optional direction)
+  (-map (-lambda ((it &as &hash "name" "children" "parents" "kind" "uri" "range" (&hash "start")))
+          `(:label ,(concat name (cond
+                                  ((eq lsp-treemacs--hierarchy-sub direction) (propertize " ↓" 'face 'shadow))
+                                  ((eq lsp-treemacs--hierarchy-super direction) (propertize " ↑" 'face 'shadow))))
+                   :key ,name
+                   :icon ,(lsp-treemacs-symbol-kind->icon kind)
+                   ,@(if loaded?
+                         (list :children (append
+                                          (lsp-treemacs--type-hierarchy-render-nodes
+                                           children nil lsp-treemacs--hierarchy-sub)
+                                          (lsp-treemacs--type-hierarchy-render-nodes
+                                           parents nil lsp-treemacs--hierarchy-super)))
+                       (list :children-async (-partial #'lsp-treemacs--type-hierarchy-render
+                                                       it
+                                                       direction)))
+                   :ret-action ,(lambda (&rest _)
+                                  (interactive)
+                                  (lsp-treemacs--open-file-in-mru (lsp--uri-to-path uri))
+                                  (goto-char (lsp--position-to-point start))
+                                  (run-hooks 'xref-after-jump-hook))))
+        result))
+
+(defun lsp-treemacs--type-hierarchy-render (node direction _ callback)
+  (-let [(&hash "uri" "range" (&hash "start")) node]
+    (lsp-request-async
+     "textDocument/typeHierarchy"
+     `(:textDocument (:uri ,uri)
+                     :position ,start
+                     :direction ,direction
+                     :resolve 1)
+     (-lambda ((&hash "children" "parents"))
+       (funcall callback (lsp-treemacs--type-hierarchy-render-nodes
+                          (if (eq direction lsp-treemacs--hierarchy-sub)
+                              children
+                            parents)
+                          nil direction))))))
+
+(defun lsp-treemacs-type-hierarchy (direction)
+  "Show the type hierarchy for the symbol at point.
+With prefix 0 show sub-types.
+With prefix 1 show super-types.
+With prefix 2 show both."
+  (interactive "P")
+  (unless (lsp--find-workspaces-for "textDocument/typeHierarchy")
+    (user-error "Type hierarchy not supported by the current servers: %s"
+                (-map #'lsp--workspace-print (lsp-workspaces))))
+  (setq direction (or direction 0))
+  (let ((workspaces (lsp-workspaces))
+        (result (lsp-request
+                 "textDocument/typeHierarchy"
+                 (-> (lsp--text-document-position-params)
+                     (plist-put :direction direction)
+                     (plist-put :resolve 1)))))
+    (if result
+        (pop-to-buffer
+         (lsp-treemacs-render
+          (lsp-treemacs--type-hierarchy-render-nodes (vector result) t)
+          (concat (cond
+                   ((eq lsp-treemacs--hierarchy-sub direction) "Sub")
+                   ((eq lsp-treemacs--hierarchy-super direction) "Super")
+                   ((eq lsp-treemacs--hierarchy-both direction) "Sub/Super"))
+                  " Type Hierarchy")
+          nil
+          "*lsp-treemacs-call-hierarchy*"))
+      (user-error "No class under point."))
+    (setq lsp--buffer-workspaces workspaces)))
 
 
 
