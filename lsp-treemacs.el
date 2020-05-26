@@ -105,6 +105,10 @@
   "The `lsp-treemacs' theme."
   :type 'string)
 
+(defcustom lsp-treemacs-default-expansion-level 3
+  "The default level to which a tree will be expanded when first rendered"
+  :type 'number)
+
 (defun lsp-treemacs--match-diagnostic-severity (diagnostic)
   (<= (lsp-diagnostic-severity diagnostic)
       (prefix-numeric-value lsp-treemacs-error-list-severity)))
@@ -473,6 +477,7 @@
 (defvar-local lsp-treemacs--empty nil)
 (defvar-local lsp-treemacs--symbols-state-string nil)
 (defvar-local lsp-treemacs--symbols-state-locals nil)
+(defvar lsp-treemacs--expansion-level lsp-treemacs-default-expansion-level)
 (defvar lsp-treemacs--symbols-current-buffer nil)
 (defvar lsp-treemacs--symbols-last-buffer nil)
 (defvar lsp-treemacs--symbols-timer nil)
@@ -615,7 +620,7 @@
 (defun lsp-treemacs--expand (root-key)
   (-when-let (root (treemacs-dom-node->position (treemacs-find-in-dom root-key)))
     (treemacs-save-position
-     (lsp-treemacs--expand-recursively root))))
+      (lsp-treemacs--expand-recursively root lsp-treemacs--expansion-level))))
 
 (defun lsp-treemacs--kill-symbols-buffer ()
   (and lsp-treemacs--symbols-timer (cancel-timer lsp-treemacs--symbols-timer)))
@@ -637,16 +642,16 @@
         (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-symbols-buffer nil t)))
     (with-current-buffer original-buffer (lsp-treemacs--update))))
 
-(defun lsp-treemacs--expand-recursively (root)
+(defun lsp-treemacs--expand-recursively (root level)
   (save-excursion
     (-map
      (lambda (btn)
        (unless (treemacs-is-node-expanded? btn)
          (goto-char (marker-position btn))
          (funcall (alist-get (treemacs-button-get btn :state) treemacs-TAB-actions-config)))
-       (lsp-treemacs--expand-recursively btn))
-     (treemacs--get-children-of root))))
-
+       (if (> level 1)
+         (lsp-treemacs--expand-recursively btn (- level 1))))
+      (treemacs--get-children-of root))))
 
 (defmacro lsp-treemacs-deps-with-jdtls (&rest body)
   "Helper macro for invoking BODY against WORKSPACE context."
@@ -1170,7 +1175,7 @@
       (setq-local face-remapping-alist '((button . default)))
       (lsp-treemacs--set-mode-line-format search-buffer title)
       (lsp-treemacs-generic-refresh)
-      (when expand? (lsp-treemacs--expand 'LSP-Generic))
+      (lsp-treemacs--expand 'LSP-Generic)
       (current-buffer))))
 
 (defalias 'lsp-treemacs--show-references 'lsp-treemacs-render)
