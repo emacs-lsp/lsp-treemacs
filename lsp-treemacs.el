@@ -643,7 +643,9 @@
     (with-current-buffer original-buffer (lsp-treemacs--update))))
 
 (defun lsp-treemacs--expand-recursively (root level)
-  (let ((lvl (or level most-positive-fixnum)))
+  (let ((lvl (cond ((numberp level) level)
+               (not level) 0
+               (t most-positive-fixnum))))
     (save-excursion
       (-map
         (lambda (btn)
