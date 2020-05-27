@@ -556,15 +556,15 @@
 (defun lsp-treemacs--update-symbols ()
   "After diagnostics handler."
   (setq-local header-line-format
-              (unless lsp-treemacs--symbols
-                (propertize "No symbol information." 'face 'shadow)))
+    (unless lsp-treemacs--symbols
+      (propertize "No symbol information." 'face 'shadow)))
   (lsp-treemacs-render
-   (lsp-treemacs--symbols->tree
-    lsp-treemacs--symbols
-    nil)
-   " LSP Symbols "
-   (and lsp-treemacs--symbols (> 30 (length lsp-treemacs--symbols)))
-   "*LSP Symbols List*" ))
+    (lsp-treemacs--symbols->tree
+      lsp-treemacs--symbols
+      nil)
+    " LSP Symbols "
+    lsp-treemacs--expansion-level
+    "*LSP Symbols List*" ))
 
 (defun lsp-treemacs--update ()
   (unless (eq (current-buffer) (get-buffer "*scratch*"))
@@ -617,10 +617,10 @@
     (add-to-list 'winum-ignored-buffers "*LSP Error List*")
     (add-to-list 'winum-ignored-buffers  lsp-treemacs-deps-buffer-name)))
 
-(defun lsp-treemacs--expand (root-key)
+(defun lsp-treemacs--expand (root-key expand-level)
   (-when-let (root (treemacs-dom-node->position (treemacs-find-in-dom root-key)))
     (treemacs-save-position
-      (lsp-treemacs--expand-recursively root lsp-treemacs--expansion-level))))
+      (lsp-treemacs--expand-recursively root expand-level))))
 
 (defun lsp-treemacs--kill-symbols-buffer ()
   (and lsp-treemacs--symbols-timer (cancel-timer lsp-treemacs--symbols-timer)))
@@ -643,15 +643,16 @@
     (with-current-buffer original-buffer (lsp-treemacs--update))))
 
 (defun lsp-treemacs--expand-recursively (root level)
-  (save-excursion
-    (-map
-     (lambda (btn)
-       (unless (treemacs-is-node-expanded? btn)
-         (goto-char (marker-position btn))
-         (funcall (alist-get (treemacs-button-get btn :state) treemacs-TAB-actions-config)))
-       (if (> level 1)
-         (lsp-treemacs--expand-recursively btn (- level 1))))
-      (treemacs--get-children-of root))))
+  (let ((lvl (or level most-positive-fixnum)))
+    (save-excursion
+      (-map
+        (lambda (btn)
+          (unless (treemacs-is-node-expanded? btn)
+            (goto-char (marker-position btn))
+            (funcall (alist-get (treemacs-button-get btn :state) treemacs-TAB-actions-config)))
+          (if (> lvl 1)
+            (lsp-treemacs--expand-recursively btn (- lvl 1))))
+        (treemacs--get-children-of root)))))
 
 (defmacro lsp-treemacs-deps-with-jdtls (&rest body)
   "Helper macro for invoking BODY against WORKSPACE context."
@@ -1164,7 +1165,7 @@
            ,@body)
        (treemacs-pulse-on-failure "No node at point"))))
 
-(defun lsp-treemacs-render (tree title expand? &optional buffer-name right-click-actions)
+(defun lsp-treemacs-render (tree title expand &optional buffer-name right-click-actions)
   (let ((search-buffer (get-buffer-create (or buffer-name "*LSP Lookup*"))))
     (with-current-buffer search-buffer
       (lsp-treemacs-initialize)
@@ -1175,7 +1176,7 @@
       (setq-local face-remapping-alist '((button . default)))
       (lsp-treemacs--set-mode-line-format search-buffer title)
       (lsp-treemacs-generic-refresh)
-      (lsp-treemacs--expand 'LSP-Generic)
+      (when expand (lsp-treemacs--expand 'LSP-Generic expand))
       (current-buffer))))
 
 (defalias 'lsp-treemacs--show-references 'lsp-treemacs-render)
