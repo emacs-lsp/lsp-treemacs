@@ -141,14 +141,13 @@
   "Select the element under cursor."
   (interactive)
   (let ((key (button-get (treemacs-node-at-point) :data)))
-    (if (and (consp key) (lsp-diagnostic-p (cdr key)))
-        (-let (((file . diag) key)
+    (if (and (consp key) (ht? (cdr key)))
+        (-let (((file . (&Diagnostic :range (&Range :start))) key)
                (session (lsp-session)))
           (with-current-buffer (find-file-noselect file)
             (with-lsp-workspaces (lsp--try-project-root-workspaces nil nil)
               (save-excursion
-                (goto-char (point-min))
-                (forward-line (lsp-diagnostic-line diag))
+                (goto-char (lsp--position-to-point :start))
                 (lsp-execute-code-action-by-kind "quickfix")))))
       (user-error "Not on a diagnostic"))))
 
@@ -174,11 +173,9 @@
 (defun lsp-treemacs-open-error (&rest _)
   "Open error."
   (interactive)
-  (-let [(file . diag) (button-get (treemacs-node-at-point) :data)]
+  (-let [(file . (&Diagnostic :range (&Range :start))) (button-get (treemacs-node-at-point) :data)]
     (find-file-other-window file)
-    (goto-char (point-min))
-    (forward-line (lsp-diagnostic-line diag))
-    (forward-char (lsp-diagnostic-column diag))))
+    (goto-char (lsp--position-to-point start))))
 
 (defun lsp-treemacs--face (root-folder diagnostics)
   "Calculate ROOT-FOLDER face based on DIAGNOSTICS."
@@ -187,9 +184,10 @@
        (-keep (-lambda ((file-name . file-diagnostics))
                 (when (s-starts-with? root-folder file-name)
                   (lsp-diagnostic-severity
-                   (--min-by (> (lsp-diagnostic-severity it)
-                                (lsp-diagnostic-severity other))
-                             file-diagnostics))))
+                   (-min-by (-lambda ((&Diagnostic :severity? left?)
+                                      (&Diagnostic :severity? right?))
+                              (> (or left? 0) (or right? 0)))
+                            file-diagnostics))))
               it)
        -min
        (assoc it lsp-treemacs-face-map)
@@ -236,12 +234,13 @@
   (->> (lsp-diagnostics)
        (gethash file-name)
        (-filter #'lsp-treemacs--match-diagnostic-severity)
-       (--sort (if (= (lsp-diagnostic-line it)
-                      (lsp-diagnostic-line other))
-                   (< (lsp-diagnostic-column it)
-                      (lsp-diagnostic-column other))
-                 (< (lsp-diagnostic-line it)
-                    (lsp-diagnostic-line other))))
+       (-sort (-lambda ((&Diagnostic :range (&Range :start (&Position :character char-a
+                                                                      :line line-a)))
+                        (&Diagnostic :range (&Range :start (&Position :character char-b
+                                                                      :line line-b))))
+                (if (= line-a line-b)
+                    (< char-a char-b)
+                  (< line-a line-b))))
        (--map (cons file-name it))))
 
 (defun lsp-treemacs--diagnostic-icon (diagnostic)
@@ -259,7 +258,7 @@
   :render-action
   (treemacs-render-node
    :icon (treemacs-as-icon ". " 'face 'font-lock-string-face)
-   :label-form (propertize (lsp-diagnostic-message item) 'face 'default)
+   :label-form (propertize (lsp:diagnostic-message item) 'face 'default)
    :state treemacs-lsp-error-open-state
    :key-form item))
 
@@ -269,15 +268,17 @@
   :query-function (lsp-treemacs--errors (treemacs-button-get node :key))
   :ret-action 'lsp-treemacs-open-file
   :render-action
-  (let* ((diag (cl-rest item))
-         (label (format (propertize "%s %s %s" 'face 'default)
-                        (propertize (format "[%s]" (lsp-diagnostic-source diag))
-                                    'face 'shadow)
-                        (lsp-diagnostic-message diag)
-                        (propertize (format "(%s:%s)"
-                                            (lsp-diagnostic-line diag)
-                                            (lsp-diagnostic-column diag))
-                                    'face 'lsp-lens-face))))
+  (-let* (((&Diagnostic :source?
+                        :message
+                        :range (&Range :start (&Position :line :character))) (cl-rest item))
+          (label (format (propertize "%s %s %s" 'face 'default)
+                         (if source?
+                             (propertize (format "[%s]" source?)
+                                         'face 'shadow)
+                           "")
+                         message
+                         (propertize (format "(%s:%s)" line character)
+                                     'face 'lsp-lens-face))))
     (treemacs-render-node
      :icon (lsp-treemacs--diagnostic-icon (cl-rest item))
      :label-form label
@@ -670,7 +671,7 @@
 
 (defun lsp-treemacs-deps--icon (dep expanded)
   "Get the symbol for the the kind."
-  (-let (((&hash "uri" "name" "kind" "entryKind" entry-kind) dep))
+  (-let (((&hash "uri" "kind" "entryKind" entry-kind) dep))
     (concat
      (if expanded  " ▾ " " ▸ ")
      (if (or (= kind 8)
@@ -1036,15 +1037,6 @@
           :ret-action (lambda (&rest _)
                         (interactive)
                         (lsp-treemacs--open-file-in-mru filename)))))
-
-(defun lsp-treemacs--extract-line (pos)
-  "Return the line pointed to by POS (a Position object) in the current buffer."
-  (let* ((point (lsp--position-to-point pos))
-         (inhibit-field-text-motion t))
-    (save-excursion
-      (goto-char point)
-      (buffer-substring (line-beginning-position)
-                        (line-end-position)))))
 
 (defun lsp-treemacs--extract-line (point)
   "Return the line pointed to by POS (a Position object) in the current buffer."
