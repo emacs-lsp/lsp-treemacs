@@ -106,7 +106,7 @@
   :type 'string)
 
 (defun lsp-treemacs--match-diagnostic-severity (diagnostic)
-  (<= (lsp-diagnostic-severity diagnostic)
+  (<= (lsp:diagnostic-severity? diagnostic)
       (prefix-numeric-value lsp-treemacs-error-list-severity)))
 
 (defun lsp-treemacs--diagnostics-match-selected-severity (diagnostics)
@@ -183,7 +183,7 @@
        ht->alist
        (-keep (-lambda ((file-name . file-diagnostics))
                 (when (s-starts-with? root-folder file-name)
-                  (lsp-diagnostic-severity
+                  (lsp:diagnostic-severity?
                    (-min-by (-lambda ((&Diagnostic :severity? left?)
                                       (&Diagnostic :severity? right?))
                               (> (or left? 0) (or right? 0)))
@@ -206,7 +206,7 @@
   "Calculate FILE-DIAGNOSTICS statistics."
   (->> file-diagnostics
        (-filter #'lsp-treemacs--match-diagnostic-severity)
-       (-group-by 'lsp-diagnostic-severity)
+       (-group-by 'lsp:diagnostic-severity?)
        (-sort (-lambda ((left) (right)) (< left right)))
        (-map (-lambda ((severity . diagnostics))
                (propertize (f-filename (number-to-string (length diagnostics)))
@@ -245,7 +245,7 @@
 
 (defun lsp-treemacs--diagnostic-icon (diagnostic)
   "Get the icon for DIAGNOSTIC."
-  (cl-case (lsp-diagnostic-severity diagnostic)
+  (cl-case (lsp:diagnostic-severity? diagnostic)
     (1 treemacs-icon-error)
     (2 treemacs-icon-warning)
     (t treemacs-icon-info)))
