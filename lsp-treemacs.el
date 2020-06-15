@@ -142,8 +142,7 @@
   (interactive)
   (let ((key (button-get (treemacs-node-at-point) :data)))
     (if (and (consp key) (ht? (cdr key)))
-        (-let (((file . (&Diagnostic :range (&Range :start))) key)
-               (session (lsp-session)))
+        (-let (((file . _diagnostic) key))
           (with-current-buffer (find-file-noselect file)
             (with-lsp-workspaces (lsp--try-project-root-workspaces nil nil)
               (save-excursion
@@ -583,10 +582,7 @@
           (with-current-buffer "*LSP Symbols List*"
             (setq-local lsp-treemacs--symbols nil)
             (lsp-treemacs--update-symbols)))))
-    (let ((buffer-changed (and lsp-treemacs--symbols-current-buffer
-                               (not (eq lsp-treemacs--symbols-current-buffer (current-buffer)))
-                               (not (eq (current-buffer) (get-buffer "*LSP Symbols List*"))))))
-      (setq lsp-treemacs--symbols-current-buffer (current-buffer)))))
+    (setq lsp-treemacs--symbols-current-buffer (current-buffer))))
 
 (defun lsp-treemacs-goto-symbol (&rest _)
   "Goto the symbol at point."
@@ -646,7 +642,7 @@
          (goto-char (marker-position btn))
          (funcall (alist-get (treemacs-button-get btn :state) treemacs-TAB-actions-config)))
        (lsp-treemacs--expand-recursively btn))
-     (treemacs--get-children-of root))))
+     (treemacs-collect-child-nodes root))))
 
 
 (defmacro lsp-treemacs-deps-with-jdtls (&rest body)
@@ -802,7 +798,7 @@
 
 (defun lsp-treemacs--deps-find-children-for-key (node key)
   (->> node
-       treemacs--get-children-of
+       treemacs-collect-child-nodes
        (-first (lambda (child)
                  (goto-char (marker-position child))
                  (equal (treemacs-button-get child :key) key)))))
@@ -894,20 +890,20 @@
    (lsp-treemacs-sync-mode
     (add-hook 'treemacs-create-project-functions #'lsp-treemacs--on-folder-added)
     (add-hook 'treemacs-delete-project-functions #'lsp-treemacs--on-folder-remove)
-    (add-hook 'lsp-workspace-folders-changed-hook #'lsp-treemacs--sync-folders)
+    (add-hook 'lsp-workspace-folders-changed-functions #'lsp-treemacs--sync-folders)
     (add-hook 'treemacs-workspace-edit-hook #'lsp-treemacs--treemacs->lsp)
     (add-hook 'treemacs-switch-workspace-hook #'lsp-treemacs--treemacs->lsp))
    (t
     (remove-hook 'treemacs-create-project-functions #'lsp-treemacs--on-folder-added)
     (remove-hook 'treemacs-delete-project-functions #'lsp-treemacs--on-folder-remove)
-    (remove-hook 'lsp-workspace-folders-changed-hook #'lsp-treemacs--sync-folders)
+    (remove-hook 'lsp-workspace-folders-changed-functions #'lsp-treemacs--sync-folders)
     (remove-hook 'treemacs-workspace-edit-hook #'lsp-treemacs--treemacs->lsp)
     (remove-hook 'treemacs-switch-workspace-hook #'lsp-treemacs--treemacs->lsp))))
 
 
 
 (defun lsp-treemacs--java-get-class-file (file)
-  (-let (((_ package class jar-file) (s-match "jdt://contents/.*\/\\(.*\\)\/\\(.*\\).class\\?=.*?/\\(.*?\\)=\/" file)))
+  (-let (((_ _package _class jar-file) (s-match "jdt://contents/.*\/\\(.*\\)\/\\(.*\\).class\\?=.*?/\\(.*?\\)=\/" file)))
     (symbol-name (read (url-unhex-string jar-file )))))
 
 (defvar-local lsp-treemacs-tree nil)
@@ -941,7 +937,7 @@
 (treemacs-define-expandable-node node
   :icon-open-form (lsp-treemacs--generic-icon (treemacs-button-get node :item) t)
   :icon-closed-form (lsp-treemacs--generic-icon (treemacs-button-get node :item) nil)
-  :query-function (-let (((item &as &plist :children :children-async :key :variables-reference) (treemacs-button-get node :item))
+  :query-function (-let (((item &as &plist :children :children-async) (treemacs-button-get node :item))
                          (node-key (lsp-treemacs--node-key node)))
                     (cond
                      ((functionp children) (funcall children item))
@@ -1007,7 +1003,7 @@
                          (propertize (f-filename filename) 'face 'default)
                          (propertize (format "%s references" (length links)) 'face 'lsp-lens-face))
           :icon (f-ext filename)
-          :children (lambda (item)
+          :children (lambda (_item)
                       (condition-case err
                           (let ((buf (lsp--buffer-for-file filename))
                                 (fn (lambda ()
@@ -1131,7 +1127,7 @@
                      :icon (if (f-file? path)
                                (f-ext path)
                              'dir-open)
-                     :children (lambda (item)
+                     :children (lambda (_item)
                                  (-map (lambda (it)
                                          (lsp-treemacs--get-xrefs-in-file it nil))
                                        (-group-by (-lambda ((&hash "uri"))
