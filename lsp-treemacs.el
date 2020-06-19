@@ -1005,7 +1005,7 @@
           :icon (f-ext filename)
           :children (lambda (_item)
                       (condition-case err
-                          (let ((buf (lsp--buffer-for-file filename))
+                          (let ((buf (find-buffer-visiting filename))
                                 (fn (lambda ()
                                       (seq-map (lambda (loc)
                                                  (lsp-treemacs--make-ref-item
