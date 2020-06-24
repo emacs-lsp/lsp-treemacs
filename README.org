@@ -30,7 +30,7 @@
 *** Screenshot
     [[file:screenshots/error-list.png]]
     - ~lsp-treemacs-quick-fix~ or press ~x~ when you are in Error List view - offer quickfixes for the error at point.
-** lsp-treemacs-symbols-list
+** lsp-treemacs-symbols
    Displays symbols information.
 *** Screenshot
     [[file:screenshots/symbols-list.gif]]
