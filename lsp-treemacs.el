@@ -444,6 +444,12 @@
     (25 'operator)
     (26 'template)))
 
+(defun lsp-treemacs-symbol-icon (kind)
+  "Get icon for `kind'."
+  (treemacs-get-icon-value (lsp-treemacs-symbol-kind->icon kind)
+                           nil
+                           lsp-treemacs-theme))
+
 (defun lsp-treemacs--symbol-icon (symbol expanded)
   "Get the symbol for the the kind."
   (-let [(&DocumentSymbol :kind :children?) symbol]
@@ -451,9 +457,7 @@
      (if (seq-empty-p children?)
          "   "
        (if expanded  " ▾ " " ▸ "))
-     (treemacs-get-icon-value (lsp-treemacs-symbol-kind->icon kind)
-                              nil
-                              lsp-treemacs-theme))))
+     (lsp-treemacs-symbol-icon kind))))
 
 (treemacs-define-expandable-node lsp-symbol
   :icon-open-form (lsp-treemacs--symbol-icon (treemacs-button-get node :symbol) t)
