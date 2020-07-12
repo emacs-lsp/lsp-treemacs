@@ -5,7 +5,7 @@
   - [[#lsp-treemacs-errors-list][lsp-treemacs-errors-list]]
     - [[#commands][Commands]]
     - [[#screenshot][Screenshot]]
-  - [[#lsp-treemacs-symbols-list][lsp-treemacs-symbols-list]]
+  - [[#lsp-treemacs-symbols][lsp-treemacs-symbols]]
     - [[#screenshot-1][Screenshot]]
   - [[#lsp-treemacs-referenceslsp-treemacs-implementations][lsp-treemacs-references/lsp-treemacs-implementations]]
     - [[#screenshot-2][Screenshot]]
