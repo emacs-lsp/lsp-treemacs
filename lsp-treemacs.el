@@ -102,10 +102,6 @@
   "Severity level for `lsp-treemacs-error-list-mode'. 1 (highest) to 3 (lowest)"
   :type 'number)
 
-(defcustom lsp-treemacs-theme "Default"
-  "The `lsp-treemacs' theme."
-  :type 'string)
-
 (defun lsp-treemacs--match-diagnostic-severity (diagnostic)
   (<= (lsp:diagnostic-severity? diagnostic)
       (prefix-numeric-value lsp-treemacs-error-list-severity)))
@@ -385,6 +381,10 @@
     (24 'event)
     (25 'operator)
     (26 'template)))
+
+(defun lsp-treemacs-get-icon (icon-name)
+  "Get the treemacs ICON using current theme."
+  (treemacs-get-icon-value icon-name nil (lsp-treemacs-current-theme-name)))
 
 (defun lsp-treemacs-symbol-icon (kind)
   "Get icon for `kind'."
