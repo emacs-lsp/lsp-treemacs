@@ -26,9 +26,14 @@
 (require 'treemacs)
 (require 'treemacs-themes)
 
+(defcustom lsp-treemacs-theme "Default"
+  "The `lsp-treemacs' theme."
+  :type 'string
+  :group 'lsp-treemacs)
+
 (defun lsp-treemacs-current-theme-name ()
   "Return the current treemacs theme name."
-  (treemacs-theme->name (treemacs-current-theme)))
+  (treemacs-theme->name lsp-treemacs-theme))
 
 (treemacs-modify-theme "Default"
   :icon-directory (f-join (f-dirname (or load-file-name buffer-file-name)) "icons/vscode")

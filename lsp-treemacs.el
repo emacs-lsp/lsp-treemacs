@@ -102,10 +102,6 @@
   "Severity level for `lsp-treemacs-error-list-mode'. 1 (highest) to 3 (lowest)"
   :type 'number)
 
-(defcustom lsp-treemacs-theme "Default"
-  "The `lsp-treemacs' theme."
-  :type 'string)
-
 (defun lsp-treemacs--match-diagnostic-severity (diagnostic)
   (<= (lsp:diagnostic-severity? diagnostic)
       (prefix-numeric-value lsp-treemacs-error-list-severity)))
