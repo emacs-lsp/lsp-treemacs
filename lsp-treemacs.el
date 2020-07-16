@@ -384,7 +384,7 @@
 
 (defun lsp-treemacs-get-icon (icon-name)
   "Get the treemacs ICON using current theme."
-  (treemacs-get-icon-value icon-name nil (lsp-treemacs-current-theme-name)))
+  (treemacs-get-icon-value icon-name nil lsp-treemacs-theme))
 
 (defun lsp-treemacs-symbol-icon (kind)
   "Get icon for `kind'."
