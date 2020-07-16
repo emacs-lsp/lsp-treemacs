@@ -31,10 +31,6 @@
   :type 'string
   :group 'lsp-treemacs)
 
-(defun lsp-treemacs-current-theme-name ()
-  "Return the current treemacs theme name."
-  (treemacs-theme->name lsp-treemacs-theme))
-
 (treemacs-modify-theme "Default"
   :icon-directory (f-join (f-dirname (or load-file-name buffer-file-name)) "icons/vscode")
   :config
