@@ -101,7 +101,7 @@
     (treemacs-create-icon :file "symbol-ruler.png" :extensions (ruler) :fallback "-")
     (treemacs-create-icon :file "symbol-snippet.png" :extensions (snippet) :fallback "-")
     (treemacs-create-icon :file "symbol-string.png" :extensions (string) :fallback "-")
-    (treemacs-create-icon :file "symbol-structure.png" :extensions (structure) :fallback "-")
+    (treemacs-create-icon :file "symbol-structure.png" :extensions (struct) :fallback "-")
     (treemacs-create-icon :file "symbol-variable.png" :extensions (variable) :fallback "-")))
 
 (treemacs-create-theme "Eclipse"
