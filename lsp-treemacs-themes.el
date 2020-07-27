@@ -95,6 +95,7 @@
     (treemacs-create-icon :file "symbol-method.png" :extensions (method) :fallback "-")
     (treemacs-create-icon :file "symbol-misc.png" :extensions (misc) :fallback "-")
     (treemacs-create-icon :file "symbol-namespace.png" :extensions (namespace) :fallback "-")
+    (treemacs-create-icon :file "symbol-namespace.png" :extensions (module) :fallback "-")
     (treemacs-create-icon :file "symbol-numeric.png" :extensions (numeric) :fallback "-")
     (treemacs-create-icon :file "symbol-operator.png" :extensions (operator) :fallback "-")
     (treemacs-create-icon :file "symbol-parameter.png" :extensions (parameter) :fallback "-")
