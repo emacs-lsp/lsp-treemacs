@@ -32,6 +32,7 @@
   :group 'lsp-treemacs)
 
 (treemacs-modify-theme "Default"
+  :extends "Default"
   :icon-directory (f-join (f-dirname (or load-file-name buffer-file-name)) "icons/vscode")
   :config
   (progn
@@ -105,6 +106,7 @@
     (treemacs-create-icon :file "symbol-variable.png" :extensions (variable) :fallback "-")))
 
 (treemacs-create-theme "Eclipse"
+  :extends "Default"
   :icon-directory (f-join (f-dirname (or load-file-name buffer-file-name)) "icons/eclipse")
   :config
   (progn
@@ -137,6 +139,7 @@
     (treemacs-create-icon :file "template.png" :extensions (template) :fallback "-")))
 
 (treemacs-create-theme "Netbeans"
+  :extends "Default"
   :icon-directory (f-join (f-dirname (or load-file-name buffer-file-name)) "icons/netbeans")
   :config
   (progn
@@ -169,6 +172,7 @@
     (treemacs-create-icon :file "template.png" :extensions (template) :fallback "-")))
 
 (treemacs-create-theme "Idea"
+  :extends "Default"
   :icon-directory (f-join (f-dirname (or load-file-name buffer-file-name)) "icons/idea")
   :config
   (progn
