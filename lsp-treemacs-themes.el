@@ -32,7 +32,6 @@
   :group 'lsp-treemacs)
 
 (treemacs-modify-theme "Default"
-  :extends "Default"
   :icon-directory (f-join (f-dirname (or load-file-name buffer-file-name)) "icons/vscode")
   :config
   (progn
