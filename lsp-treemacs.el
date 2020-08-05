@@ -34,6 +34,7 @@
 
 (require 'lsp-treemacs-themes)
 (require 'lsp-mode)
+(require 'lsp-lens)
 
 (defconst lsp-treemacs-deps-buffer-name "*Java Dependency List*")
 
