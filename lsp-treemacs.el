@@ -809,23 +809,15 @@
     (let ((treemacs-create-project-functions (remove #'lsp-treemacs--on-folder-added
                                                      treemacs-create-project-functions))
           (treemacs-delete-project-functions (remove #'lsp-treemacs--on-folder-remove
-                                                     treemacs-delete-project-functions)))
-      (seq-do (lambda (folder)
-                (when (->> treemacs-workspace
-                           (treemacs-workspace->projects)
-                           (-none? (lambda (project)
-                                     (f-same? (treemacs-project->path project)
-                                              folder))))
-                  (treemacs-add-project-to-workspace folder)))
-              added)
-      (seq-do (lambda (folder)
-                (when-let (project (->> treemacs-workspace
-                                        (treemacs-workspace->projects)
-                                        (-first (lambda (project)
-                                                  (f-same? (treemacs-project->path project)
-                                                           folder)))))
-                  (treemacs-do-remove-project-from-workspace project)))
-              removed))))
+                                                     treemacs-delete-project-functions))
+          (added (seq-map #'treemacs--canonical-path added))
+          (removed (seq-map #'treemacs--canonical-path removed)))
+      (dolist (added-path added)
+        (unless (treemacs-is-path added-path :in-workspace treemacs-workspace)
+          (treemacs-add-project-to-workspace added-path)))
+      (dolist (removed-path removed)
+        (when (treemacs-is-path removed-path :in-workspace treemacs-workspace)
+          (treemacs-do-remove-project-from-workspace removed-path))))))
 
 ;;;###autoload
 (define-minor-mode lsp-treemacs-sync-mode
