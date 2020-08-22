@@ -1105,9 +1105,7 @@
      (interactive)
      (ignore args)
      (if-let (node (treemacs-node-at-point))
-         (-let [,(if (cl-rest keys)
-                     keys
-                   (cl-first keys)) (button-get node :item)]
+         (-let [,(cons '&plist keys) (button-get node :item)]
            ,@body)
        (treemacs-pulse-on-failure "No node at point"))))
 
