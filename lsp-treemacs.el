@@ -381,7 +381,8 @@
     (23 'structure)
     (24 'event)
     (25 'operator)
-    (26 'template)))
+    (26 'template)
+    (t 'misc)))
 
 (defun lsp-treemacs-get-icon (icon-name)
   "Get the treemacs ICON using current theme."
