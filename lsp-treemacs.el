@@ -139,13 +139,12 @@
   "Select the element under cursor."
   (interactive)
   (let ((key (button-get (treemacs-node-at-point) :data)))
-    (if (and (consp key) (ht? (cdr key)))
-        (-let (((file . _diagnostic) key))
-          (with-current-buffer (find-file-noselect file)
-            (with-lsp-workspaces (lsp--try-project-root-workspaces nil nil)
-              (save-excursion
-                (goto-char (lsp--position-to-point :start))
-                (lsp-execute-code-action-by-kind "quickfix")))))
+    (if (and (consp key) (lsp-diagnostic? (cl-rest key)))
+        (progn
+          (lsp-treemacs--open-file-in-mru (cl-first key))
+          (-let [(&Diagnostic :range (&RangeToPoint :start)) (cl-rest key)]
+            (goto-char start)
+            (call-interactively #'lsp-execute-code-action)))
       (user-error "Not on a diagnostic"))))
 
 (defun lsp-treemacs-cycle-severity ()
