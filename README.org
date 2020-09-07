@@ -1,3 +1,6 @@
+[[https://melpa.org/#/lsp-treemacs][file:https://melpa.org/packages/lsp-treemacs-badge.svg]]
+[[https://stable.melpa.org/#/lsp-treemacs][file:https://stable.melpa.org/packages/lsp-treemacs-badge.svg]]
+
 * Table of Contents                                       :TOC_4_gh:noexport:
 - [[#summary][Summary]]
 - [[#synchronization][Synchronization]]
