@@ -864,7 +864,7 @@
      (with-current-buffer ,buffer
        ,@body)))
 
-(defvar lsp-treemacs-use-cache nil)
+(defvar-local lsp-treemacs-use-cache nil)
 (defvar-local lsp-treemacs--generic-cache nil)
 
 (defun lsp-treemacs--node-key (node)
@@ -890,9 +890,11 @@
                                  item
                                  (lambda (result)
                                    (lsp-treemacs-wcb-unless-killed buffer
-                                     (puthash node-key (cons t result) lsp-treemacs--generic-cache)
-                                     (let ((lsp-treemacs-use-cache t))
-                                       (lsp-treemacs-generic-refresh))))))
+                                     (unless (equal (gethash node-key  lsp-treemacs--generic-cache)
+                                                    (cons t result))
+                                       (puthash node-key (cons t result) lsp-treemacs--generic-cache)
+                                       (let ((lsp-treemacs-use-cache t))
+                                         (treemacs-update-node (cons :custom node-key) t)))))))
                       (or (cl-rest (gethash node-key lsp-treemacs--generic-cache))
                           `((:label ,(propertize "Loading..." 'face 'shadow)
                                     :icon-literal " "
@@ -1000,7 +1002,7 @@
                                             'face 'lsp-lens-face)))
           :key line
           :point start-point
-          :icon-literal " "
+          :icon-literal ""
           :ret-action (lambda (&rest _)
                         (interactive)
                         (lsp-treemacs--open-file-in-mru filename)
@@ -1014,10 +1016,11 @@
     (treemacs-GENERIC-extension)))
 
 (defun lsp-treemacs-generic-refresh ()
-  (condition-case _err
-      (let ((inhibit-read-only t))
-        (treemacs-update-node '(:custom LSP-Generic) t))
-    (error)))
+  (let (lsp-treemacs-use-cache)
+    (condition-case _err
+        (let ((inhibit-read-only t))
+          (treemacs-update-node '(:custom LSP-Generic) t))
+      (error))))
 
 (defun lsp-treemacs-generic-right-click (event)
   (interactive "e")
