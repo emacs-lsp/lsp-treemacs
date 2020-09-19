@@ -1077,16 +1077,6 @@
                                    (interactive)
                                    (lsp-treemacs--open-file-in-mru path)))))))
 
-(defmacro lsp-treemacs-define-action (name keys &rest body)
-  (declare (doc-string 3) (indent 2))
-  `(defun ,name (&rest args)
-     ,(format "Code action %s" name)
-     (interactive)
-     (if-let (node (treemacs-node-at-point))
-         (-let [,(cons '&plist keys) (button-get node :item)]
-           ,@body)
-       (treemacs-pulse-on-failure "No node at point"))))
-
 (defun lsp-treemacs-render (tree title expand-depth &optional buffer-name right-click-actions)
   (let ((search-buffer (get-buffer-create (or buffer-name "*LSP Lookup*"))))
     (with-current-buffer search-buffer
