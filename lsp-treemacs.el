@@ -37,6 +37,8 @@
 (require 'lsp-lens)
 
 (defconst lsp-treemacs-deps-buffer-name "*Java Dependency List*")
+(defconst lsp-treemacs-symbols-buffer-name "*LSP Symbols List*")
+(defconst lsp-treemacs-errors-buffer-name "*LSP Error List*")
 
 (defgroup lsp-treemacs nil
   "Language Server Protocol client."
@@ -308,7 +310,7 @@
   "After diagnostics handler."
   (save-excursion
     (condition-case _err
-        (with-current-buffer (get-buffer-create "*LSP Error List*")
+        (with-current-buffer (get-buffer-create lsp-treemacs-errors-buffer-name)
           (treemacs-update-node '(:custom LSP-Errors) t))
       (error))))
 
@@ -333,11 +335,11 @@
   "Display error list."
   (interactive)
 
-  (-if-let (buffer (get-buffer "*LSP Error List*"))
+  (-if-let (buffer (get-buffer lsp-treemacs-errors-buffer-name))
       (progn
         (select-window (display-buffer-in-side-window buffer '((side . bottom))))
         (lsp-treemacs--after-diagnostics))
-    (let* ((buffer (get-buffer-create "*LSP Error List*"))
+    (let* ((buffer (get-buffer-create lsp-treemacs-errors-buffer-name))
            (window (display-buffer-in-side-window buffer '((side . bottom)))))
       (select-window window)
       (set-window-dedicated-p window t)
@@ -505,11 +507,11 @@
     nil)
    " LSP Symbols "
    (and lsp-treemacs--symbols (> 30 (length lsp-treemacs--symbols)))
-   "*LSP Symbols List*" ))
+   lsp-treemacs-symbols-buffer-name ))
 
 (defun lsp-treemacs--update ()
   (unless (eq (current-buffer) (get-buffer "*scratch*"))
-    (when (with-current-buffer "*LSP Symbols List*" (get-buffer-window))
+    (when (with-current-buffer lsp-treemacs-symbols-buffer-name (get-buffer-window))
       (if (lsp--find-workspaces-for "textDocument/documentSymbol")
           (when (or (not lsp-treemacs--symbols-tick)
                     (not (eq lsp-treemacs--symbols-tick (buffer-modified-tick)))
@@ -518,14 +520,14 @@
                                (lsp-make-document-symbol-params :text-document (lsp--text-document-identifier))
                                (lambda (document-symbols)
                                  (save-excursion
-                                   (with-current-buffer "*LSP Symbols List*"
+                                   (with-current-buffer lsp-treemacs-symbols-buffer-name
                                      (setq-local lsp-treemacs--symbols document-symbols)
                                      (lsp-treemacs--update-symbols))))
                                :mode 'alive)
             (setq-local lsp-treemacs--symbols-tick (buffer-modified-tick))
             (setq lsp-treemacs--symbols-last-buffer (current-buffer)))
         (when (buffer-file-name)
-          (with-current-buffer "*LSP Symbols List*"
+          (with-current-buffer lsp-treemacs-symbols-buffer-name
             (setq-local lsp-treemacs--symbols nil)
             (lsp-treemacs--update-symbols)))))
     (setq lsp-treemacs--symbols-current-buffer (current-buffer))))
@@ -551,8 +553,8 @@
 
 (with-eval-after-load 'winum
   (when (boundp 'winum-ignored-buffers)
-    (add-to-list 'winum-ignored-buffers "*LSP Symbols List*")
-    (add-to-list 'winum-ignored-buffers "*LSP Error List*")
+    (add-to-list 'winum-ignored-buffers lsp-treemacs-symbols-buffer-name)
+    (add-to-list 'winum-ignored-buffers lsp-treemacs-errors-buffer-name)
     (add-to-list 'winum-ignored-buffers  lsp-treemacs-deps-buffer-name)))
 
 (defun lsp-treemacs--expand (root-key depth)
@@ -568,9 +570,9 @@
   "Show symbols view."
   (interactive)
   (let ((original-buffer (current-buffer)))
-    (if-let (buf (get-buffer "*LSP Symbols List*"))
+    (if-let (buf (get-buffer lsp-treemacs-symbols-buffer-name))
         (select-window (display-buffer-in-side-window buf lsp-treemacs-symbols-position-params))
-      (let* ((buf (get-buffer-create "*LSP Symbols List*"))
+      (let* ((buf (get-buffer-create lsp-treemacs-symbols-buffer-name))
              (window (display-buffer-in-side-window buf lsp-treemacs-symbols-position-params)))
         (select-window window)
         (set-window-dedicated-p window t)
