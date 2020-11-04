@@ -449,6 +449,13 @@
            (const :tag "Kind"  lsp-treemacs-sort-by-kind)
            (const :tag "Position" lsp-treemacs-sort-by-position))))
 
+(defcustom lsp-treemacs-detailed-outline t
+  "Whether `lsp-treemacs-symbols' should include signatures.
+For this to work, the language server must support
+DocumentSymbols."
+  :group 'lsp-treemacs
+  :type 'boolean)
+
 (defun lsp-treemacs--symbols->tree (items parent-key)
   "Convert ITEMS and PARENT-KEY to a treemacs tree."
   (-sort (lambda (left right)
@@ -463,38 +470,40 @@
                                                       :location (location &as &Location :range (&Range :start start-range))))
                           (when (string= parent-key container-name?)
                             `(:label ,name
-                                     :key ,name
-                                     :icon ,(lsp-treemacs-symbol-kind->icon kind)
-                                     ,@(when (-first (-lambda ((&SymbolInformation :container-name? parent))
-                                                       (string= name parent))
-                                                     rest)
-                                         (list :children (lsp-treemacs--symbols->tree rest name)))
-                                     :kind ,kind
-                                     :location ,start-range
-                                     :ret-action ,(lambda (&rest _)
-                                                    (pop-to-buffer lsp-treemacs--symbols-last-buffer)
-                                                    (->> start-range
-                                                         lsp--position-to-point
-                                                         goto-char)
-                                                    (run-hooks 'xref-after-jump-hook)))))
+                              :key ,name
+                              :icon ,(lsp-treemacs-symbol-kind->icon kind)
+                              ,@(when (-first (-lambda ((&SymbolInformation :container-name? parent))
+                                                (string= name parent))
+                                              rest)
+                                  (list :children (lsp-treemacs--symbols->tree rest name)))
+                              :kind ,kind
+                              :location ,start-range
+                              :ret-action ,(lambda (&rest _)
+                                             (pop-to-buffer lsp-treemacs--symbols-last-buffer)
+                                             (->> start-range
+                                                  lsp--position-to-point
+                                                  goto-char)
+                                             (run-hooks 'xref-after-jump-hook)))))
                         current))
-           (seq-map (-lambda ((&DocumentSymbol :name :kind :selection-range (&Range :start start-range) :children? :deprecated?))
-                      `(:label ,(if deprecated?
-                                    (propertize name 'face 'lsp-face-semhl-deprecated)
-                                  name)
-                               :key ,name
-                               :icon ,(lsp-treemacs-symbol-kind->icon kind)
-                               :kind ,kind
-                               :location start-range
-                               ,@(unless (seq-empty-p children?)
-                                   (list :children (lsp-treemacs--symbols->tree children? name)))
-                               :ret-action ,(lambda (&rest _)
-                                              (pop-to-buffer lsp-treemacs--symbols-last-buffer)
-                                              (->> start-range
-                                                   lsp--position-to-point
-                                                   goto-char)
-                                              (run-hooks 'xref-after-jump-hook))))
-                    items))))
+           (seq-map
+            (-lambda ((&DocumentSymbol :name :detail? :kind :selection-range (&Range :start start-range) :children? :deprecated?))
+              (let ((sig (or (and lsp-treemacs-detailed-outline detail?) name)))
+                `(:label ,(if deprecated?
+                              (propertize sig 'face 'lsp-face-semhl-deprecated)
+                            sig)
+                  :key ,name
+                  :icon ,(lsp-treemacs-symbol-kind->icon kind)
+                  :kind ,kind
+                  :location start-range
+                  ,@(unless (seq-empty-p children?)
+                      (list :children (lsp-treemacs--symbols->tree children? name)))
+                  :ret-action ,(lambda (&rest _)
+                                 (pop-to-buffer lsp-treemacs--symbols-last-buffer)
+                                 (->> start-range
+                                      lsp--position-to-point
+                                      goto-char)
+                                 (run-hooks 'xref-after-jump-hook)))))
+            items))))
 
 (defun lsp-treemacs--update-symbols ()
   "After diagnostics handler."
