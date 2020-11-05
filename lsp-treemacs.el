@@ -454,6 +454,25 @@ DocumentSymbols."
   :group 'lsp-treemacs
   :type 'boolean)
 
+(defcustom lsp-treemacs-after-jump-hook
+  (list (lambda () (run-hooks 'xref-after-jump-hook)))
+  "List of functions to call after jumping to a symbol.
+When pressing RET on a symbol in the `lsp-treemacs-symbols' view,
+this hook will be run after having jumped to the target."
+  :group 'lsp-treemacs
+  :type '(list function))
+
+(defun lsp-treemacs-symbols-goto-symbol (node)
+  "Goto the symbol at NODE.
+NODE is the symbol node at point when called interactively."
+  (interactive (list (treemacs-node-at-point)))
+  (let ((loc (-> node
+                 (button-get :item)
+                 (plist-get :location))))
+    (pop-to-buffer lsp-treemacs--symbols-last-buffer)
+    (goto-char (lsp--position-to-point loc)))
+  (run-hooks 'lsp-treemacs-after-jump-hook))
+
 (defun lsp-treemacs--symbols->tree (items parent-key)
   "Convert ITEMS and PARENT-KEY to a treemacs tree."
   (-sort (lambda (left right)
@@ -476,12 +495,7 @@ DocumentSymbols."
                                   (list :children (lsp-treemacs--symbols->tree rest name)))
                               :kind ,kind
                               :location ,start-range
-                              :ret-action ,(lambda (&rest _)
-                                             (pop-to-buffer lsp-treemacs--symbols-last-buffer)
-                                             (->> start-range
-                                                  lsp--position-to-point
-                                                  goto-char)
-                                             (run-hooks 'xref-after-jump-hook)))))
+                              :ret-action lsp-treemacs-symbols-goto-symbol)))
                         current))
            (seq-map
             (-lambda ((sym &as &DocumentSymbol :name :kind :selection-range
@@ -490,15 +504,10 @@ DocumentSymbols."
                 :key ,name
                 :icon ,(lsp-treemacs-symbol-kind->icon kind)
                 :kind ,kind
-                :location start-range
+                :location ,start-range
                 ,@(unless (seq-empty-p children?)
                     (list :children (lsp-treemacs--symbols->tree children? name)))
-                :ret-action ,(lambda (&rest _)
-                               (pop-to-buffer lsp-treemacs--symbols-last-buffer)
-                               (->> start-range
-                                    lsp--position-to-point
-                                    goto-char)
-                               (run-hooks 'xref-after-jump-hook))))
+                :ret-action lsp-treemacs-symbols-goto-symbol))
             items))))
 
 (defun lsp-treemacs--update-symbols ()
