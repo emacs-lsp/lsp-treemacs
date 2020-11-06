@@ -4,7 +4,7 @@
 
 ;; Author: Ivan Yonchovski
 ;; Keywords: languages
-;; Package-Requires: ((emacs "26.1") (dash "2.14.1") (dash-functional "2.14.1") (f "0.20.0") (ht "2.0") (treemacs "2.5") (lsp-mode "6.0"))
+;; Package-Requires: ((emacs "26.1") (dash "2.14.1") (dash-functional "2.14.1") (f "0.20.0") (ht "2.0") (treemacs "2.5") (lsp-mode "7.1"))
 ;; Homepage: https://github.com/emacs-lsp/lsp-treemacs
 ;; Version: 0.3
 
@@ -485,23 +485,21 @@ DocumentSymbols."
                                              (run-hooks 'xref-after-jump-hook)))))
                         current))
            (seq-map
-            (-lambda ((&DocumentSymbol :name :detail? :kind :selection-range (&Range :start start-range) :children? :deprecated?))
-              (let ((sig (or (and lsp-treemacs-detailed-outline detail?) name)))
-                `(:label ,(if deprecated?
-                              (propertize sig 'face 'lsp-face-semhl-deprecated)
-                            sig)
-                  :key ,name
-                  :icon ,(lsp-treemacs-symbol-kind->icon kind)
-                  :kind ,kind
-                  :location start-range
-                  ,@(unless (seq-empty-p children?)
-                      (list :children (lsp-treemacs--symbols->tree children? name)))
-                  :ret-action ,(lambda (&rest _)
-                                 (pop-to-buffer lsp-treemacs--symbols-last-buffer)
-                                 (->> start-range
-                                      lsp--position-to-point
-                                      goto-char)
-                                 (run-hooks 'xref-after-jump-hook)))))
+            (-lambda ((sym &as &DocumentSymbol :name :detail? :kind :selection-range
+                           (&Range :start start-range) :children? :deprecated?))
+              `(:label ,(lsp-render-symbol sym lsp-treemacs-detailed-outline)
+                :key ,name
+                :icon ,(lsp-treemacs-symbol-kind->icon kind)
+                :kind ,kind
+                :location start-range
+                ,@(unless (seq-empty-p children?)
+                    (list :children (lsp-treemacs--symbols->tree children? name)))
+                :ret-action ,(lambda (&rest _)
+                               (pop-to-buffer lsp-treemacs--symbols-last-buffer)
+                               (->> start-range
+                                    lsp--position-to-point
+                                    goto-char)
+                               (run-hooks 'xref-after-jump-hook))))
             items))))
 
 (defun lsp-treemacs--update-symbols ()
