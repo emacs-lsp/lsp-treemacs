@@ -466,10 +466,10 @@ DocumentSymbols."
              (-let [(current rest) (-separate (-lambda ((&SymbolInformation :container-name?))
                                                 (string= container-name? parent-key))
                                               (append items nil))]
-               (seq-map (-lambda ((&SymbolInformation :name :container-name? :kind
-                                                      :location (location &as &Location :range (&Range :start start-range))))
+               (seq-map (-lambda (sym &as &SymbolInformation:container-name? :kind
+                                      :location (location &as &Location :range (&Range :start start-range)))
                           (when (string= parent-key container-name?)
-                            `(:label ,name
+                            `(:label ,(lsp-render-symbol-information sym nil)
                               :key ,name
                               :icon ,(lsp-treemacs-symbol-kind->icon kind)
                               ,@(when (-first (-lambda ((&SymbolInformation :container-name? parent))
