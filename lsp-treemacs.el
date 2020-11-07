@@ -597,8 +597,8 @@ will be rendered an empty line between them."
         ;; `lsp-treemacs-initialize' -> `treemacs-mode' (because we haven't
         ;; enabled it already) -> `kill-all-local-variables'.
         (lsp-treemacs-initialize)
-        (setq-local treemacs-default-visit-action 'treemacs-RET-action
-                    treemacs-space-between-root-nodes
+        (setq-local treemacs-default-visit-action 'treemacs-RET-action)
+        (setq-local treemacs-space-between-root-nodes
                     lsp-treemacs-symbols-space-between-root-nodes)
         (setq lsp-treemacs--symbols-timer (run-at-time 0 1.0 #'lsp-treemacs--update))
         (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-symbols-buffer nil t)))
