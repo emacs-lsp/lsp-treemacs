@@ -334,7 +334,6 @@
 (defun lsp-treemacs-errors-list ()
   "Display error list."
   (interactive)
-
   (-if-let (buffer (get-buffer lsp-treemacs-errors-buffer-name))
       (progn
         (select-window (display-buffer-in-side-window buffer '((side . bottom))))
@@ -574,6 +573,13 @@ DocumentSymbols."
 (defun lsp-treemacs--kill-symbols-buffer ()
   (and lsp-treemacs--symbols-timer (cancel-timer lsp-treemacs--symbols-timer)))
 
+(defcustom lsp-treemacs-symbols-space-between-root-nodes nil
+  "Whether there should be empty lines between symbols.
+If this is set to t, top-level symbols in `lsp-treemacs-symbols'
+will be rendered an empty line between them."
+  :group 'lsp-treemacs
+  :type 'boolean)
+
 ;;;###autoload
 (defun lsp-treemacs-symbols ()
   "Show symbols view."
@@ -585,8 +591,15 @@ DocumentSymbols."
              (window (display-buffer-in-side-window buf lsp-treemacs-symbols-position-params)))
         (select-window window)
         (set-window-dedicated-p window t)
+        ;; Initialize now, as otherwise all buffer local variables are killed
+        ;; and as such `treemacs-space-between-root-nodes' will be reset to its
+        ;; global value. `lsp-treemacs--update' -> `lsp-treemacs-render' ->
+        ;; `lsp-treemacs-initialize' -> `treemacs-mode' (because we haven't
+        ;; enabled it already) -> `kill-all-local-variables'.
+        (lsp-treemacs-initialize)
         (setq-local treemacs-default-visit-action 'treemacs-RET-action)
-        (setq-local treemacs-space-between-root-nodes nil)
+        (setq-local treemacs-space-between-root-nodes
+                    lsp-treemacs-symbols-space-between-root-nodes)
         (setq lsp-treemacs--symbols-timer (run-at-time 0 1.0 #'lsp-treemacs--update))
         (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-symbols-buffer nil t)))
     (with-current-buffer original-buffer (lsp-treemacs--update))))
