@@ -486,7 +486,8 @@ DocumentSymbols."
                         current))
            (seq-map
             (-lambda ((&DocumentSymbol :name :detail? :kind :selection-range (&Range :start start-range) :children? :deprecated?))
-              (let ((sig (or (and lsp-treemacs-detailed-outline detail?) name)))
+              (let ((sig (or (and lsp-treemacs-detailed-outline (concat name " " detail?))
+                             name)))
                 `(:label ,(if deprecated?
                               (propertize sig 'face 'lsp-face-semhl-deprecated)
                             sig)
