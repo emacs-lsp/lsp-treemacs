@@ -34,7 +34,6 @@
 
 (require 'lsp-treemacs-themes)
 (require 'lsp-mode)
-(require 'lsp-lens)
 
 (defconst lsp-treemacs-deps-buffer-name "*Java Dependency List*")
 (defconst lsp-treemacs-symbols-buffer-name "*LSP Symbols List*")
@@ -224,7 +223,7 @@
                                             'face 'default)
                                 (lsp-treemacs--diag-statistics file-diagnostics)
                                 (propertize (f-dirname (f-relative file-name project-root))
-                                            'face 'lsp-lens-face)))))
+                                            'face 'lsp-details-face)))))
               it)))
 
 (defun lsp-treemacs--errors (file-name)
@@ -276,7 +275,7 @@
                            "")
                          message
                          (propertize (format "(%s:%s)" line character)
-                                     'face 'lsp-lens-face))))
+                                     'face 'lsp-details-face))))
     (treemacs-render-node
      :icon (lsp-treemacs--diagnostic-icon (cl-rest item))
      :label-form label
@@ -966,7 +965,7 @@ will be rendered an empty line between them."
     (list :key filename
           :label (format (propertize "%s %s" 'face 'default)
                          (propertize (f-filename filename) 'face 'default)
-                         (propertize (format "%s references" (length links)) 'face 'lsp-lens-face))
+                         (propertize (format "%s references" (length links)) 'face 'lsp-details-face))
           :icon (f-ext filename)
           :children (lambda (_item)
                       (condition-case err
@@ -1022,7 +1021,7 @@ will be rendered an empty line between them."
                                  line
                                  (propertize(format "%s line"
                                                     (1+ start-line))
-                                            'face 'lsp-lens-face)))
+                                            'face 'lsp-details-face)))
           :key line
           :point start-point
           :icon-literal ""
@@ -1087,7 +1086,7 @@ will be rendered an empty line between them."
                      :label (format
                              "%s %s"
                              (f-filename path)
-                             (propertize (format "%s references" (length rst)) 'face 'lsp-lens-face))
+                             (propertize (format "%s references" (length rst)) 'face 'lsp-details-face))
                      :icon (if (f-file? path)
                                (f-ext path)
                              'dir-open)
