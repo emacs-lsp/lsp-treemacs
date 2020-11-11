@@ -485,23 +485,21 @@ DocumentSymbols."
                                              (run-hooks 'xref-after-jump-hook)))))
                         current))
            (seq-map
-            (-lambda ((&DocumentSymbol :name :detail? :kind :selection-range (&Range :start start-range) :children? :deprecated?))
-              (let ((sig (or (and lsp-treemacs-detailed-outline detail?) name)))
-                `(:label ,(if deprecated?
-                              (propertize sig 'face 'lsp-face-semhl-deprecated)
-                            sig)
-                  :key ,name
-                  :icon ,(lsp-treemacs-symbol-kind->icon kind)
-                  :kind ,kind
-                  :location start-range
-                  ,@(unless (seq-empty-p children?)
-                      (list :children (lsp-treemacs--symbols->tree children? name)))
-                  :ret-action ,(lambda (&rest _)
-                                 (pop-to-buffer lsp-treemacs--symbols-last-buffer)
-                                 (->> start-range
-                                      lsp--position-to-point
-                                      goto-char)
-                                 (run-hooks 'xref-after-jump-hook)))))
+            (-lambda ((sym &as &DocumentSymbol :name :kind :selection-range
+                           (&Range :start start-range) :children?))
+              `(:label ,(lsp-render-symbol sym lsp-treemacs-detailed-outline)
+                :key ,name
+                :icon ,(lsp-treemacs-symbol-kind->icon kind)
+                :kind ,kind
+                :location start-range
+                ,@(unless (seq-empty-p children?)
+                    (list :children (lsp-treemacs--symbols->tree children? name)))
+                :ret-action ,(lambda (&rest _)
+                               (pop-to-buffer lsp-treemacs--symbols-last-buffer)
+                               (->> start-range
+                                    lsp--position-to-point
+                                    goto-char)
+                               (run-hooks 'xref-after-jump-hook))))
             items))))
 
 (defun lsp-treemacs--update-symbols ()
@@ -1208,8 +1206,7 @@ With a prefix argument, select the new window expand the tree of implementations
                       (if outgoing
                           (lsp:call-hierarchy-outgoing-call-to node)
                         (lsp:call-hierarchy-incoming-call-from node)))
-                     (label (concat name (when detail?
-                                           (propertize (concat " - " detail?) 'face 'lsp-lens-face)))))
+                     (label (lsp-render-symbol child-item t)))
                (list :label label
                      :key label
                      :icon (lsp-treemacs-symbol-kind->icon kind)
@@ -1236,9 +1233,8 @@ With a prefix argument, show the outgoing call hierarchy."
      (display-buffer-in-side-window
       (lsp-treemacs-render
        (seq-map
-        (-lambda ((item &as &CallHierarchyItem :name :kind :detail?))
-          (list :label (concat name (when detail?
-                                      (propertize (concat " - " detail?) 'face 'lsp-lens-face)))
+        (-lambda ((item &as &CallHierarchyItem :kind :name))
+          (list :label (lsp-render-symbol item t)
                 :key name
                 :icon (lsp-treemacs-symbol-kind->icon kind)
                 :children-async (-partial
