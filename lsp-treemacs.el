@@ -191,13 +191,13 @@
        cl-rest))
 
 (defun lsp-treemacs--project-diagnostics (root-folder diagnostics)
-  "Calculate ROOT-FOLDER face based on DIAGNOSTICS."
+  "Collect ROOT-FOLDER's DIAGNOSTICS."
   (->> diagnostics
        (ht-map (lambda (file-name file-diags)
                  (when (and (s-starts-with? root-folder file-name)
                             (lsp-treemacs--diagnostics-match-selected-severity file-diags))
                    file-diags)))
-       (apply #'append)))
+       (apply #'nconc)))
 
 (defun lsp-treemacs--diag-statistics (file-diagnostics)
   "Calculate FILE-DIAGNOSTICS statistics."
