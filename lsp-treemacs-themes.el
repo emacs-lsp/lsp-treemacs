@@ -206,5 +206,8 @@
     (treemacs-create-icon :file "Class.png" :extensions (typeParameter) :fallback "-")
     (treemacs-create-icon :file "Template.png" :extensions (template) :fallback "-")))
 
+(treemacs-create-theme "Iconless"
+  :icon-directory buffer-file-name)
+
 (provide 'lsp-treemacs-themes)
 ;;; lsp-treemacs-themes.el ends here
