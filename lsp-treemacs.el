@@ -1224,8 +1224,7 @@ With a prefix argument, select the new window expand the tree of implementations
   "Show the incoming call hierarchy for the symbol at point.
 With a prefix argument, show the outgoing call hierarchy."
   (interactive "P")
-  (unless (and (lsp--capability :callHierarchyProvider)
-               (lsp--find-workspaces-for "textDocument/prepareCallHierarchy"))
+  (unless (and (lsp-feature? "textDocument/prepareCallHierarchy"))
     (user-error "Call hierarchy not supported by the current servers: %s"
                 (-map #'lsp--workspace-print (lsp-workspaces))))
   (let ((buffer (current-buffer)))
