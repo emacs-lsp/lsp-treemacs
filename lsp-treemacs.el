@@ -1190,6 +1190,12 @@ With a prefix argument, select the new window expand the tree of implementations
 
 ;; Call hierarchy.
 
+(lsp-defun lsp-treemacs--call-hierarchy-ret-action ((&CallHierarchyItem :uri :selection-range (&Range :start)))
+  "Build the ret action for a call hierarchy item using URI and START range."
+  (lsp-treemacs--open-file-in-mru (lsp--uri-to-path uri))
+  (goto-char (lsp--position-to-point start))
+  (run-hooks 'xref-after-jump-hook))
+
 (defun lsp-treemacs--call-hierarchy-children (buffer method outgoing node callback)
   (-let [item (plist-get node :item)]
     (with-current-buffer buffer
@@ -1212,9 +1218,7 @@ With a prefix argument, select the new window expand the tree of implementations
                      :children-async (-partial #'lsp-treemacs--call-hierarchy-children buffer method outgoing)
                      :ret-action (lambda (&rest _)
                                    (interactive)
-                                   (lsp-treemacs--open-file-in-mru (lsp--uri-to-path uri))
-                                   (goto-char (lsp--position-to-point start))
-                                   (run-hooks 'xref-after-jump-hook))
+                                   (lsp-treemacs--call-hierarchy-ret-action child-item))
                      :item child-item)))
            result)))
        :mode 'detached))))
@@ -1224,7 +1228,7 @@ With a prefix argument, select the new window expand the tree of implementations
   "Show the incoming call hierarchy for the symbol at point.
 With a prefix argument, show the outgoing call hierarchy."
   (interactive "P")
-  (unless (lsp--find-workspaces-for "textDocument/prepareCallHierarchy")
+  (unless (lsp-feature? "textDocument/prepareCallHierarchy")
     (user-error "Call hierarchy not supported by the current servers: %s"
                 (-map #'lsp--workspace-print (lsp-workspaces))))
   (let ((buffer (current-buffer)))
@@ -1243,6 +1247,9 @@ With a prefix argument, show the outgoing call hierarchy."
                                      "callHierarchy/outgoingCalls"
                                    "callHierarchy/incomingCalls")
                                  outgoing)
+                :ret-action (lambda (&rest _)
+                                   (interactive)
+                                   (lsp-treemacs--call-hierarchy-ret-action item))
                 :item item))
         (lsp-request "textDocument/prepareCallHierarchy"
                      (lsp--text-document-position-params)))
