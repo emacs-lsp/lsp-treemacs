@@ -844,10 +844,15 @@ will be rendered an empty line between them."
           (removed (seq-map #'treemacs--canonical-path removed)))
       (dolist (added-path added)
         (unless (treemacs-is-path added-path :in-workspace treemacs-workspace)
-          (treemacs-add-project-to-workspace added-path)))
+          (let* ((name (file-name-nondirectory (directory-file-name added-path)))
+                 (result (treemacs-do-add-project-to-workspace added-path name)))
+            (unless (eq 'success result)
+              (lsp-log "Failed to add path '%s' to treemacs' workspace: %s" added-path result)))))
       (dolist (removed-path removed)
         (when (treemacs-is-path removed-path :in-workspace treemacs-workspace)
-          (treemacs-do-remove-project-from-workspace removed-path))))))
+          (let ((result (treemacs-do-remove-project-from-workspace removed-path)))
+            (unless (eq 'success result)
+              (lsp-log "Failed to remove path '%s' from treemacs' workspace: %s" removed-path result))))))))
 
 ;;;###autoload
 (define-minor-mode lsp-treemacs-sync-mode
