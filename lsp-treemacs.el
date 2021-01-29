@@ -462,11 +462,9 @@ this hook will be run after having jumped to the target."
   :group 'lsp-treemacs
   :type '(list function))
 
-(defun lsp-treemacs-symbols-goto-symbol (node)
-  "Goto the symbol at NODE.
-NODE is the symbol node at point when called interactively."
-  (interactive (list (treemacs-node-at-point)))
-  (let ((loc (-> node
+(defun lsp-treemacs-symbols-goto-symbol (&rest _)
+  "Goto the symbol node at `point'."
+  (let ((loc (-> (treemacs-node-at-point)
                  (button-get :item)
                  (plist-get :location))))
     (pop-to-buffer lsp-treemacs--symbols-last-buffer)
