@@ -462,13 +462,10 @@ this hook will be run after having jumped to the target."
   :group 'lsp-treemacs
   :type '(list function))
 
-(defun lsp-treemacs-symbols-goto-symbol (&rest _)
+(lsp-treemacs-define-action lsp-treemacs-symbols-goto-symbol (:location)
   "Goto the symbol node at `point'."
-  (let ((loc (-> (treemacs-node-at-point)
-                 (button-get :item)
-                 (plist-get :location))))
-    (pop-to-buffer lsp-treemacs--symbols-last-buffer)
-    (goto-char (lsp--position-to-point loc)))
+  (pop-to-buffer lsp-treemacs--symbols-last-buffer)
+  (goto-char (lsp--position-to-point location))
   (run-hooks 'lsp-treemacs-after-jump-hook))
 
 (defun lsp-treemacs--symbols->tree (items parent-key)
@@ -1125,15 +1122,18 @@ will be rendered an empty line between them."
       (current-buffer))))
 
 (defmacro lsp-treemacs-define-action (name keys &rest body)
-  (declare (doc-string 3) (indent 2))
-  `(defun ,name (&rest args)
-     ,(format "Code action %s" name)
-     (interactive)
-     (ignore args)
-     (if-let (node (treemacs-node-at-point))
-         (-let [,(cons '&plist keys) (button-get node :item)]
-           ,@body)
-       (treemacs-pulse-on-failure "No node at point"))))
+  (declare (doc-string 3) (indent 2) (debug (&define name sexp lambda-doc def-body)))
+  (let* ((docstring (car body)))
+    (when (stringp docstring)
+      (pop body))
+    `(defun ,name (&rest args)
+       ,(if (stringp docstring) docstring (format "Code action %s." name))
+       (interactive)
+       (ignore args)
+       (if-let (node (treemacs-node-at-point))
+           (-let [,(cons '&plist keys) (button-get node :item)]
+             ,@body)
+         (treemacs-pulse-on-failure "No node at point")))))
 
 (defalias 'lsp-treemacs--show-references 'lsp-treemacs-render)
 
