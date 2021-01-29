@@ -1122,7 +1122,7 @@ will be rendered an empty line between them."
       (current-buffer))))
 
 (defmacro lsp-treemacs-define-action (name keys &rest body)
-  (declare (doc-string 3) (indent 2))
+  (declare (doc-string 3) (indent 2) (debug (&define name sexp lambda-doc def-body)))
   (let* ((docstring (car body)))
     (when (stringp docstring)
       (pop body))
