@@ -657,6 +657,7 @@ will be rendered an empty line between them."
        ,@body)))
 
 (defvar-local lsp-treemacs-use-cache nil)
+(defvar-local lsp-treemacs-generic-filter nil)
 (defvar-local lsp-treemacs--generic-cache nil)
 
 (defun lsp-treemacs--node-key (node)
@@ -669,31 +670,35 @@ will be rendered an empty line between them."
 (treemacs-define-expandable-node node
   :icon-open-form (lsp-treemacs--generic-icon (treemacs-button-get node :item) t)
   :icon-closed-form (lsp-treemacs--generic-icon (treemacs-button-get node :item) nil)
-  :query-function (-let (((item &as &plist :children :children-async) (treemacs-button-get node :item))
-                         (node-key (lsp-treemacs--node-key node)))
-                    (cond
-                     ((functionp children) (funcall children item))
-                     ((and (gethash node-key lsp-treemacs--generic-cache)
-                           lsp-treemacs-use-cache)
-                      (cl-rest (gethash node-key lsp-treemacs--generic-cache)))
-                     (children-async
-                      (-let [buffer (current-buffer)]
-                        (funcall children-async
-                                 item
-                                 (lambda (result)
-                                   (lsp-treemacs-wcb-unless-killed buffer
-                                     (unless (equal (gethash node-key  lsp-treemacs--generic-cache)
-                                                    (cons t result))
-                                       (puthash node-key (cons t result) lsp-treemacs--generic-cache)
-                                       (let ((lsp-treemacs-use-cache t))
-                                         (treemacs-update-node (cons :custom node-key) t)))))))
-                      (if-let ((cache (gethash node-key lsp-treemacs--generic-cache)))
-                          (cl-rest cache)
-                        `((:label ,(propertize "Loading..." 'face 'shadow)
-                                  :icon-literal " "
-                                  :key "Loading..."))))
-                     (t children)))
-  :ret-action #'lsp-treemacs-perform-ret-action
+  :query-function
+  (-let* (((item &as &plist :children :children-async) (treemacs-button-get node :item))
+          (node-key (lsp-treemacs--node-key node))
+          (result (cond
+                   ((functionp children) (funcall children item))
+                   ((and (gethash node-key lsp-treemacs--generic-cache)
+                         lsp-treemacs-use-cache)
+                    (cl-rest (gethash node-key lsp-treemacs--generic-cache)))
+                   (children-async
+                    (-let [buffer (current-buffer)]
+                      (funcall children-async
+                               item
+                               (lambda (result)
+                                 (lsp-treemacs-wcb-unless-killed buffer
+                                   (unless (equal (gethash node-key  lsp-treemacs--generic-cache)
+                                                  (cons t result))
+                                     (puthash node-key (cons t result) lsp-treemacs--generic-cache)
+                                     (let ((lsp-treemacs-use-cache t))
+                                       (treemacs-update-node (cons :custom node-key) t)))))))
+                    (if-let ((cache (gethash node-key lsp-treemacs--generic-cache)))
+                        (cl-rest cache)
+                      `((:label ,(propertize "Loading..." 'face 'shadow)
+                                :icon-literal " "
+                                :key "Loading..."))))
+                   (t children))))
+    (if lsp-treemacs-generic-filter
+        (funcall lsp-treemacs-generic-filter result)
+      result))
+  :ret-action #'lsp-treemacs-perform-ret-actionreemacs-perform-ret-action
   :render-action
   (-let [(&plist :children :label :key :children-async) item]
     (treemacs-render-node
@@ -718,7 +723,6 @@ will be rendered an empty line between them."
 
 (defun lsp-treemacs--generic-icon (item expanded?)
   "Get the symbol for the the kind."
-  (message ">>>  %s exp = %s" (plist-get item :label) expanded?)
   (concat
    (if (or (plist-get item :children)
            (plist-get item :children-async))
@@ -809,8 +813,8 @@ will be rendered an empty line between them."
     (lsp-treemacs-generic-mode t)
     (treemacs-GENERIC-extension)))
 
-(defun lsp-treemacs-generic-refresh ()
-  (let (lsp-treemacs-use-cache)
+(defun lsp-treemacs-generic-refresh (&optional cache)
+  (let ((lsp-treemacs-use-cache cache))
     (condition-case _err
         (let ((inhibit-read-only t))
           (treemacs-update-node '(:custom LSP-Generic) t))
@@ -1025,8 +1029,8 @@ With a prefix argument, show the outgoing call hierarchy."
                                    "callHierarchy/incomingCalls")
                                  outgoing)
                 :ret-action (lambda (&rest _)
-                                   (interactive)
-                                   (lsp-treemacs--call-hierarchy-ret-action item))
+                              (interactive)
+                              (lsp-treemacs--call-hierarchy-ret-action item))
                 :item item))
         (lsp-request "textDocument/prepareCallHierarchy"
                      (lsp--text-document-position-params)))
