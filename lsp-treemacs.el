@@ -1219,7 +1219,7 @@ With a prefix argument, select the new window expand the tree of implementations
           callback
           (seq-map
            (-lambda (node)
-             (-let* (((child-item &as &CallHierarchyItem :name :kind :detail? :uri :selection-range (&Range :start))
+             (-let* (((child-item &as &CallHierarchyItem _:name :kind _:detail? _:uri :selection-range (&Range _:start))
                       (if outgoing
                           (lsp:call-hierarchy-outgoing-call-to node)
                         (lsp:call-hierarchy-incoming-call-from node)))
