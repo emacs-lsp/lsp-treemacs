@@ -15,14 +15,14 @@ build:
 unix-compile:
 	@$(CASK) $(EMACS) -Q --batch \
 		-L . \
-		--eval '(setq treemacs-no-load-time-warnings t)' \
+		--eval '(setq byte-compile-error-on-warn t)' \
 		-f batch-byte-compile $(LSP-TREEMACS-GENERAL)
 
 windows-compile:
 	@$(CASK) $(EMACS) -Q --batch \
 		-l test/windows-bootstrap.el \
 		-L . \
-		--eval '(setq treemacs-no-load-time-warnings t)' \
+		--eval '(setq byte-compile-error-on-warn t)' \
 		-f batch-byte-compile $(LSP-TREEMACS-GENERAL)
 
 unix-ci: clean build unix-compile
