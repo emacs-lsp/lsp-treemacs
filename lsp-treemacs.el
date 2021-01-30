@@ -709,7 +709,7 @@ will be rendered an empty line between them."
     (if lsp-treemacs-generic-filter
         (funcall lsp-treemacs-generic-filter result)
       result))
-  :ret-action #'lsp-treemacs-perform-ret-actionreemacs-perform-ret-action
+  :ret-action #'lsp-treemacs-perform-ret-action
   :render-action
   (-let [(&plist :children :label :key :children-async) item]
     (treemacs-render-node
@@ -1113,7 +1113,7 @@ With prefix 2 show both."
 
 ;; errors
 
-(defun lsp-treeemacs--error-list-diags (folder file &rest _)
+(defun lsp-treeemacs--error-list-diags (_folder file &rest _)
   (->> (lsp-diagnostics)
        (gethash file)
        (-filter #'lsp-treemacs--match-diagnostic-severity)
