@@ -30,8 +30,7 @@
 
 (let* ((package-archives '(("melpa" . "https://melpa.org/packages/")
                            ("gnu" . "http://elpa.gnu.org/packages/")))
-       (pkgs (append '(dash dash-functional lsp-mode markdown-mode)
-                     '(ert-runner flycheck rustic))))
+       (pkgs '(dash dash-functional f ht treemacs lsp-mode)))
   (package-initialize)
   (package-refresh-contents)
 
