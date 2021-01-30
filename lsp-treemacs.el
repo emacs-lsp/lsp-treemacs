@@ -988,7 +988,7 @@ With a prefix argument, select the new window expand the tree of implementations
           callback
           (seq-map
            (-lambda (node)
-             (-let* (((child-item &as &CallHierarchyItem :kind :uri :selection-range (&Range :start))
+             (-let* (((child-item &as &CallHierarchyItem :_name :kind :_detail? :_uri :selection-range (&Range :_start))
                       (if outgoing
                           (lsp:call-hierarchy-outgoing-call-to node)
                         (lsp:call-hierarchy-incoming-call-from node)))
