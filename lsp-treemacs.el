@@ -48,17 +48,22 @@
   `((side . ,treemacs-position)
     (slot . 1)
     (window-width . ,treemacs-width))
-  "The params which will be used by `display-buffer-in-side-window' in `lsp-treemacs-java-deps-list'.")
+  "The params which will be used by
+  `display-buffer-in-side-window' in
+  `lsp-treemacs-java-deps-list'.")
 
 (defvar lsp-treemacs-symbols-position-params
   `((side . ,treemacs-position)
     (slot . 2)
     (window-width . ,treemacs-width))
-  "The params which will be used by `display-buffer-in-side-window' in `lsp-treemacs-symbols'.")
+  "The params which will be used by
+  `display-buffer-in-side-window' in `lsp-treemacs-symbols'.")
 
 (defvar lsp-treemacs-errors-position-params
   `((side . bottom))
-  "The params which will be used by `display-buffer-in-side-window' in `lsp-treemacs-errors-list'.")
+  "The params which will be used by
+  `display-buffer-in-side-window' in
+  `lsp-treemacs-errors-list'.")
 
 (defface lsp-treemacs-project-root-error
   '((t :inherit font-lock-keyword-face))
