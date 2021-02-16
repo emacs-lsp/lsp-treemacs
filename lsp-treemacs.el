@@ -4,7 +4,7 @@
 
 ;; Author: Ivan Yonchovski
 ;; Keywords: languages
-;; Package-Requires: ((emacs "26.1") (dash "2.14.1") (dash-functional "2.14.1") (f "0.20.0") (ht "2.0") (treemacs "2.5") (lsp-mode "6.0"))
+;; Package-Requires: ((emacs "26.1") (dash "2.18.0") (f "0.20.0") (ht "2.0") (treemacs "2.5") (lsp-mode "6.0"))
 ;; Homepage: https://github.com/emacs-lsp/lsp-treemacs
 ;; Version: 0.3
 
@@ -375,8 +375,8 @@ will be rendered an empty line between them."
         (setq-local treemacs-default-visit-action 'treemacs-RET-action)
         (setq-local treemacs-space-between-root-nodes
                     lsp-treemacs-symbols-space-between-root-nodes)
-	(unless lsp-treemacs--symbols-timer
-	  (setq lsp-treemacs--symbols-timer (run-with-idle-timer 1 t #'lsp-treemacs--update)))
+    (unless lsp-treemacs--symbols-timer
+      (setq lsp-treemacs--symbols-timer (run-with-idle-timer 1 t #'lsp-treemacs--update)))
         (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-symbols-buffer nil t)))
     (with-current-buffer original-buffer (lsp-treemacs--update))))
 
