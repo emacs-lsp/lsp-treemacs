@@ -1237,15 +1237,18 @@ With prefix 2 show both."
    folders))
 
 
-(defvar lsp-treemacs--current-project-root nil)
+(defvar lsp-treemacs--current-project-roots nil)
 
 (defun lsp-treemacs-errors-list--refresh ()
+  (message "->%s" lsp-treemacs--current-project-roots)
   (lsp-treemacs-render
-   (if (and lsp-treemacs--current-project-root
+   (if (and lsp-treemacs--current-project-roots
             lsp-treemacs-error-list-current-project-only)
        (->> (lsp-session)
             (lsp-session-folders)
-            (--filter (f-equal-p lsp-treemacs--current-project-root it))
+            (-filter (lambda (folder)
+                       (--any (f-equal-p it folder)
+                              lsp-treemacs--current-project-roots)))
             (lsp-treemacs--build-error-list))
      (->> (lsp-session)
           (lsp-session-folders)
@@ -1258,9 +1261,7 @@ With prefix 2 show both."
 ;;;###autoload
 (defun lsp-treemacs-errors-list ()
   (interactive)
-  (setq lsp-treemacs--current-project-root (-some-> (lsp-workspaces)
-                                                    cl-first
-                                                    (lsp--workspace-root)))
+  (setq lsp-treemacs--current-project-roots (-map #'lsp--workspace-root (lsp-workspaces)))
   (-if-let (buffer (get-buffer lsp-treemacs-errors-buffer-name))
       (progn
         (select-window (display-buffer-in-side-window buffer '((side . bottom))))
