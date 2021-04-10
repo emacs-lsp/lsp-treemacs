@@ -1242,9 +1242,8 @@ With prefix 2 show both."
             (-map #'lsp-workspace-folders)
             (-flatten)
             (-keep #'lsp-treemacs--build-error-list))
-     (->> lsp-treemacs--current-workspaces
-          (-map #'lsp-workspace-folders)
-          (-flatten)
+     (->> (lsp-session)
+          (lsp-session-folders)
           (-keep #'lsp-treemacs--build-error-list)))
    "Errors List"
    nil
