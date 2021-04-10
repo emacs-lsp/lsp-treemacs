@@ -109,7 +109,7 @@
   "Severity level for `lsp-treemacs-error-list-mode'. 1 (highest) to 3 (lowest)"
   :type 'number)
 
-(defcustom lsp-treemacs-error-list-current-project-only t
+(defcustom lsp-treemacs-error-list-current-project-only nil
   "List the error list of the current project only if available.
 Fallback to list all workspaces if no project root is found."
   :type 'boolean
