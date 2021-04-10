@@ -1237,7 +1237,8 @@ With prefix 2 show both."
 
 (defun lsp-treemacs-errors-list--refresh ()
   (lsp-treemacs-render
-   (if lsp-treemacs-error-list-current-project-only
+   (if (and lsp-treemacs-error-list-current-project-only
+            lsp-treemacs--current-workspaces)
        (->> lsp-treemacs--current-workspaces
             (-map #'lsp-workspace-folders)
             (-flatten)
