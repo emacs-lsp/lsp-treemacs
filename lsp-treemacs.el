@@ -109,6 +109,12 @@
   "Severity level for `lsp-treemacs-error-list-mode'. 1 (highest) to 3 (lowest)"
   :type 'number)
 
+(defcustom lsp-treemacs-error-list-current-project-only nil
+  "List the error list of the current project only if available.
+Fallback to list all workspaces if no project root is found."
+  :type 'boolean
+  :group 'lsp-treemacs)
+
 (defun lsp-treemacs--open-file-in-mru (file)
   (select-window (get-mru-window (selected-frame) nil :not-selected))
   (find-file file))
@@ -1202,35 +1208,44 @@ With prefix 2 show both."
                             count)))
        (seq-some #'identity)))
 
+(defun lsp-treemacs--build-error-list (folder)
+  (when-let ((diags (append (lsp-diagnostics-stats-for folder) ())))
+    (when (lsp-treemacs-errors--diags? diags)
+      (list :label (format
+                    (propertize "%s %s %s" 'face 'default)
+                    (f-filename folder)
+                    (->> diags
+                      (-map-indexed
+                       (lambda (index count)
+                         (when (and (not (zerop count))
+                                    (<= index lsp-treemacs-error-list-severity))
+                           (propertize
+                            (number-to-string count)
+                            'face (alist-get index lsp-treemacs-file-face-map)))))
+                      (-filter #'identity)
+                      (s-join "/"))
+                    (propertize (f-dirname folder)
+                                'face 'lsp-lens-face))
+            :id folder
+            :icon 'root
+            :children (-partial #'lsp-treemacs-errors--list-files folder)
+            :ret-action (lambda (&rest _)
+                          (interactive)
+                          (lsp-treemacs--open-file-in-mru folder))))))
+
+(defvar lsp-treemacs--current-workspaces nil)
+
 (defun lsp-treemacs-errors-list--refresh ()
   (lsp-treemacs-render
-   (->> (lsp-session)
-        (lsp-session-folders)
-        (-keep
-         (lambda (folder)
-           (when-let ((diags (append (lsp-diagnostics-stats-for folder) ())))
-             (when (lsp-treemacs-errors--diags? diags)
-               (list :label (format
-                             (propertize "%s %s %s" 'face 'default)
-                             (f-filename folder)
-                             (->> diags
-                                  (-map-indexed
-                                   (lambda (index count)
-                                     (when (and (not (zerop count))
-                                                (<= index lsp-treemacs-error-list-severity))
-                                       (propertize
-                                        (number-to-string count)
-                                        'face (alist-get index lsp-treemacs-file-face-map)))))
-                                  (-filter #'identity)
-                                  (s-join "/"))
-                             (propertize (f-dirname folder)
-                                         'face 'lsp-lens-face))
-                     :id folder
-                     :icon 'root
-                     :children (-partial #'lsp-treemacs-errors--list-files folder)
-                     :ret-action (lambda (&rest _)
-                                   (interactive)
-                                   (lsp-treemacs--open-file-in-mru folder))))))))
+   (if (and lsp-treemacs-error-list-current-project-only
+            lsp-treemacs--current-workspaces)
+       (->> lsp-treemacs--current-workspaces
+            (-map #'lsp-workspace-folders)
+            (-flatten)
+            (-keep #'lsp-treemacs--build-error-list))
+     (->> (lsp-session)
+          (lsp-session-folders)
+          (-keep #'lsp-treemacs--build-error-list)))
    "Errors List"
    nil
    lsp-treemacs-errors-buffer-name
@@ -1239,6 +1254,7 @@ With prefix 2 show both."
 ;;;###autoload
 (defun lsp-treemacs-errors-list ()
   (interactive)
+  (setq lsp-treemacs--current-workspaces (lsp-workspaces))
   (-if-let (buffer (get-buffer lsp-treemacs-errors-buffer-name))
       (progn
         (select-window (display-buffer-in-side-window buffer '((side . bottom))))
