@@ -563,7 +563,6 @@ will be rendered an empty line between them."
   "Keymap for `lsp-treemacs-deps-list-mode'.")
 
 (define-minor-mode lsp-treemacs-deps-list-mode ""
-  nil nil nil
   :keymap lsp-treemacs-deps-list-mode-map
   :group 'lsp-treeemacs)
 
@@ -866,7 +865,7 @@ will be rendered an empty line between them."
   "Keymap for `lsp-treemacs-generic-mode'")
 
 (define-minor-mode lsp-treemacs-generic-mode "Treemacs generic mode."
-  nil nil lsp-treemacs-generic-map)
+  :keymap lsp-treemacs-generic-map)
 
 (defun lsp-treemacs--handle-references (refs)
   (->> refs
@@ -1292,7 +1291,6 @@ With prefix 2 show both."
   "Keymap for `lsp-treemacs-error-list-mode'.")
 
 (define-minor-mode lsp-treemacs-error-list-mode ""
-  nil nil nil
   :keymap lsp-treemacs-error-list-mode-map
   :group 'lsp-treeemacs)
 
