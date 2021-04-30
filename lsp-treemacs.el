@@ -248,6 +248,12 @@ this hook will be run after having jumped to the target."
   (goto-char (lsp--position-to-point location))
   (run-hooks 'lsp-treemacs-after-jump-hook))
 
+(lsp-treemacs-define-action lsp-treemacs-go-to (:uri :position)
+  "Goto POSITION in URL."
+  (lsp-treemacs--open-file-in-mru (lsp--uri-to-path uri))
+  (goto-char (lsp--position-to-point position))
+  (run-hooks 'xref-after-jump-hook))
+
 (defun lsp-treemacs--symbols->tree (items parent-key)
   "Convert ITEMS and PARENT-KEY to a treemacs tree."
   (-sort (lambda (left right)
