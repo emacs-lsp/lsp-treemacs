@@ -379,10 +379,11 @@ will be rendered an empty line between them."
         ;; enabled it already) -> `kill-all-local-variables'.
         (lsp-treemacs-initialize)
         (setq-local treemacs-default-visit-action 'treemacs-RET-action)
+        (setq-local treemacs--width-is-locked nil)
         (setq-local treemacs-space-between-root-nodes
                     lsp-treemacs-symbols-space-between-root-nodes)
-    (unless lsp-treemacs--symbols-timer
-      (setq lsp-treemacs--symbols-timer (run-with-idle-timer 1 t #'lsp-treemacs--update)))
+        (unless lsp-treemacs--symbols-timer
+          (setq lsp-treemacs--symbols-timer (run-with-idle-timer 1 t #'lsp-treemacs--update)))
         (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-symbols-buffer nil t)))
     (with-current-buffer original-buffer (lsp-treemacs--update))))
 
@@ -544,10 +545,11 @@ will be rendered an empty line between them."
       (lsp-treemacs--set-mode-line-format buffer " Java Dependencies ")
       (lsp-treemacs-deps-list-mode t)
 
-      (setq-local treemacs-space-between-root-nodes nil)
       (setq-local treemacs-default-visit-action 'treemacs-RET-action)
 
-      (treemacs-LSP-TREEMACS-DEPS-LIST-extension))))
+      (treemacs-LSP-TREEMACS-DEPS-LIST-extension)
+      (setq-local treemacs--width-is-locked nil)
+      (setq-local window-size-fixed  nil))))
 
 (defun lsp-treemacs--deps-find-children-for-key (node key)
   (->> node
@@ -905,6 +907,9 @@ will be rendered an empty line between them."
                                                 (ht)))
       (setq-local lsp-treemacs-tree tree)
       (setq-local face-remapping-alist '((button . default)))
+      (setq-local window-size-fixed nil)
+      (setq-local treemacs--width-is-locked nil)
+      (setq-local treemacs-space-between-root-nodes nil)
       (lsp-treemacs--set-mode-line-format search-buffer title)
       (lsp-treemacs-generic-refresh)
       (when expand-depth (lsp-treemacs--expand 'LSP-Generic expand-depth))
