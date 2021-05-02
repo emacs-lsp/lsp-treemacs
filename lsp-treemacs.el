@@ -404,6 +404,12 @@ will be rendered an empty line between them."
          (lsp-treemacs--expand-recursively btn (if (booleanp depth) depth (1- depth))))
        (treemacs-collect-child-nodes root)))))
 
+
+;; deps
+(eval-and-compile
+  (lsp-interface
+   (java:Node (:projectUri :rootPath :path :kind :name :uri :entryKind))))
+
 (defmacro lsp-treemacs-deps-with-jdtls (&rest body)
   "Helper macro for invoking BODY against WORKSPACE context."
   (declare (debug (form body))
@@ -416,17 +422,17 @@ will be rendered an empty line between them."
   (if-let ((dep (-some-> (treemacs-node-at-point)
                   (button-get :dep))))
       (lsp-treemacs--open-file-in-mru
-       (or (-some-> (gethash "uri" dep)
+       (or (-some-> (lsp-get dep :uri)
              (lsp--uri-to-path))
-           (when (f-exists? (gethash "path" dep))
-             (gethash "path" dep))
-           (concat (f-parent (lsp--uri-to-path (gethash "projectUri" dep)))
-                   (gethash "path" dep))))
+           (when (f-exists? (lsp-get dep :path))
+             (lsp-get dep :path))
+           (concat (f-parent (lsp--uri-to-path (lsp-get dep :projectUri)))
+                   (lsp-get dep :path))))
     (user-error "No element under point.")))
 
 (defun lsp-treemacs-deps--icon (dep expanded)
   "Get the symbol for the the kind."
-  (-let (((&hash "uri" "kind" "entryKind" entry-kind) dep))
+  (-let (((&java:Node :uri :kind :entry-kind) dep))
     (concat
      (if expanded  "▾ " "▸ ")
      (if (or (= kind 8)
@@ -446,7 +452,7 @@ will be rendered an empty line between them."
 
 (defun lsp-treemacs-deps--get-children (dep)
   (lsp-treemacs-deps-with-jdtls
-    (-let* (((&hash "projectUri" project-uri "rootPath" root-path "path" "kind" "name" "uri") dep)
+    (-let* (((&java:Node :project-uri :root-path :path :kind :name :uri) dep)
             (project-uri (if (eq kind 2) uri project-uri)))
       (unless (or (= kind 6)
                   (= kind 8))
@@ -461,15 +467,15 @@ will be rendered an empty line between them."
                                         (or root-path path)))
                           ("projectUri" project-uri))))
              (-mapcat (lambda (inner-dep)
-                        (puthash "projectUri" project-uri inner-dep)
+                        (lsp-put inner-dep :projectUri project-uri)
                         (when (= kind 4)
-                          (puthash "rootPath" path inner-dep))
-                        (if (eq (gethash "entryKind" inner-dep) 3)
+                          (lsp-put inner-dep :rootPath path))
+                        (if (eq (lsp-get inner-dep :entryKind) 3)
                             (lsp-treemacs-deps--get-children inner-dep)
                           (list inner-dep)))))))))
 
 (defun lsp-treemacs-deps--java-file? (dep)
-  (-let [(&hash "kind" "entryKind" entry-kind) dep]
+  (-let [(&java:Node :kind :entry-kind) dep]
     (and (eq kind 6)
          (or (eq entry-kind 1)
              (eq entry-kind 2)))))
@@ -477,7 +483,7 @@ will be rendered an empty line between them."
 (treemacs-define-expandable-node lsp-treemacs-deps
   :icon-open-form (lsp-treemacs-deps--icon (treemacs-button-get node :dep) t)
   :icon-closed-form (lsp-treemacs-deps--icon (treemacs-button-get node :dep) nil)
-  :query-function (-let (((dep &as &hash "uri") (treemacs-button-get node :dep)))
+  :query-function (-let (((dep &as &java:Node :uri) (treemacs-button-get node :dep)))
                     (if (lsp-treemacs-deps--java-file? dep)
                         (lsp-treemacs-deps-with-jdtls
                           (lsp-request "textDocument/documentSymbol"
@@ -485,23 +491,20 @@ will be rendered an empty line between them."
                                                                         (lsp-make-text-document-item :uri uri))))
                       (lsp-treemacs-deps--get-children dep)))
   :ret-action 'lsp-treemacs-deps--goto-element
-  :render-action (if (lsp-treemacs-deps--java-file? (treemacs-button-get node :dep))
+  :render-action (-let (((&java:Node :name :uri :path) item))
+                   (if (lsp-treemacs-deps--java-file? (treemacs-button-get node :dep))
+                       (treemacs-render-node
+                        :icon (lsp-treemacs--symbol-icon item nil)
+                        :label-form (propertize name 'face 'default)
+                        :state treemacs-lsp-symbol-closed-state
+                        :key-form (list name uri path)
+                        :more-properties (:symbol item))
                      (treemacs-render-node
-                      :icon (lsp-treemacs--symbol-icon item nil)
-                      :label-form (propertize (gethash "name" item) 'face 'default)
-                      :state treemacs-lsp-symbol-closed-state
-                      :key-form (list (gethash "name" item)
-                                      (gethash "uri" item)
-                                      (gethash "path" item))
-                      :more-properties (:symbol item))
-                   (treemacs-render-node
-                    :icon (lsp-treemacs-deps--icon item nil)
-                    :label-form (propertize (gethash "name" item) 'face 'default)
-                    :state treemacs-lsp-treemacs-deps-closed-state
-                    :key-form (list (gethash "name" item)
-                                    (gethash "uri" item)
-                                    (gethash "path" item))
-                    :more-properties (:dep item))))
+                      :icon (lsp-treemacs-deps--icon item nil)
+                      :label-form (propertize name 'face 'default)
+                      :state treemacs-lsp-treemacs-deps-closed-state
+                      :key-form (list name uri path)
+                      :more-properties (:dep item)))))
 
 (defun lsp-treemacs-deps--root-folders ()
   (lsp-treemacs-deps-with-jdtls
@@ -509,20 +512,19 @@ will be rendered an empty line between them."
                (let ((project-uri (lsp--path-to-uri root-path)))
                  (->> project-uri
                       (lsp-send-execute-command "java.project.list")
-                      (--map (--doto it (puthash "projectUri" project-uri it))))))
+                      (--map (--doto it (lsp-put it :projectUri project-uri))))))
              (lsp-session-folders (lsp-session)))))
 
 (treemacs-define-variadic-node lsp-treemacs-deps-list
   :query-function (lsp-treemacs-deps--root-folders)
   :render-action
-  (treemacs-render-node
-   :icon (lsp-treemacs-deps--icon item nil)
-   :label-form (propertize (gethash "name" item) 'face 'default)
-   :state treemacs-lsp-treemacs-deps-closed-state
-   :key-form (list (gethash "name" item)
-                   (gethash "uri" item)
-                   (gethash "path" item))
-   :more-properties (:dep item))
+  (-let (((&java:Node :name :uri :path) item))
+    (treemacs-render-node
+     :icon (lsp-treemacs-deps--icon item nil)
+     :label-form (propertize name 'face 'default)
+     :state treemacs-lsp-treemacs-deps-closed-state
+     :key-form (list name uri path)
+     :more-properties (:dep item)))
   :root-key-form 'LSP-Java-Dependency)
 
 (defun lsp-treemacs-java-deps-refresh ()
@@ -586,7 +588,7 @@ will be rendered an empty line between them."
           (get-buffer-window)
           (marker-position
            (-reduce-from
-            (-lambda (node (&hash "path" "name" "uri"))
+            (-lambda (node (&java:Node :path :name :uri))
               (unless (treemacs-is-node-expanded? node)
                 (save-excursion
                   (goto-char (marker-position node))
@@ -597,7 +599,6 @@ will be rendered an empty line between them."
             paths)))
          (get-buffer-window)))
       (recenter nil))))
-
 
 
 ;; treemacs synchronization
