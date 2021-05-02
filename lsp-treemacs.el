@@ -1097,6 +1097,7 @@ With a prefix argument, show the outgoing call hierarchy."
                           parents?)
                         nil direction)))))
 
+;;;###autoload
 (defun lsp-treemacs-type-hierarchy (direction)
   "Show the type hierarchy for the symbol at point.
 With prefix 0 show sub-types.
