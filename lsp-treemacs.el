@@ -48,12 +48,22 @@
   `((side . ,treemacs-position)
     (slot . 1)
     (window-width . ,treemacs-width))
-  "The params which will be used by `display-buffer-in-side-window'.")
+  "The params which will be used by
+  `display-buffer-in-side-window' in
+  `lsp-treemacs-java-deps-list'.")
 
 (defvar lsp-treemacs-symbols-position-params
   `((side . ,treemacs-position)
     (slot . 2)
-    (window-width . ,treemacs-width)))
+    (window-width . ,treemacs-width))
+  "The params which will be used by
+  `display-buffer-in-side-window' in `lsp-treemacs-symbols'.")
+
+(defvar lsp-treemacs-errors-position-params
+  `((side . bottom))
+  "The params which will be used by
+  `display-buffer-in-side-window' in
+  `lsp-treemacs-errors-list'.")
 
 (defface lsp-treemacs-project-root-error
   '((t :inherit font-lock-keyword-face))
@@ -539,7 +549,7 @@ will be rendered an empty line between them."
 
 ;;;###autoload
 (defun lsp-treemacs-java-deps-list ()
-  "Display error list."
+  "Display java dependencies."
   (interactive)
   (-if-let (buffer (get-buffer lsp-treemacs-deps-buffer-name))
       (select-window
@@ -1269,10 +1279,10 @@ With prefix 2 show both."
   (setq lsp-treemacs--current-workspaces (lsp-workspaces))
   (-if-let (buffer (get-buffer lsp-treemacs-errors-buffer-name))
       (progn
-        (select-window (display-buffer-in-side-window buffer '((side . bottom))))
+        (select-window (display-buffer-in-side-window buffer lsp-treemacs-errors-position-params))
         (lsp-treemacs-errors-list--refresh))
     (let* ((buffer (lsp-treemacs-errors-list--refresh))
-           (window (display-buffer-in-side-window buffer '((side . bottom)))))
+           (window (display-buffer-in-side-window buffer lsp-treemacs-errors-position-params)))
       (select-window window)
       (set-window-dedicated-p window t)
       (lsp-treemacs-error-list-mode 1)
