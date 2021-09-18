@@ -929,6 +929,9 @@ will be rendered an empty line between them."
       (setq-local treemacs-space-between-root-nodes nil)
       (lsp-treemacs--set-mode-line-format search-buffer title)
       (lsp-treemacs-generic-refresh)
+      (when treemacs-text-scale
+        (text-scale-increase treemacs-text-scale))
+
       (when expand-depth (lsp-treemacs--expand 'LSP-Generic expand-depth))
       (current-buffer))))
 
