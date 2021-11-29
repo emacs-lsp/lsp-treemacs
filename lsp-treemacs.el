@@ -584,7 +584,7 @@ will be rendered an empty line between them."
 
 (define-minor-mode lsp-treemacs-deps-list-mode ""
   :keymap lsp-treemacs-deps-list-mode-map
-  :group 'lsp-treeemacs)
+  :group 'lsp-treemacs)
 
 ;;;###autoload
 (defun lsp-treemacs-java-deps-follow ()
@@ -1144,7 +1144,7 @@ With prefix 2 show both."
 
 ;; errors
 
-(defun lsp-treeemacs--error-list-diags (_folder file &rest _)
+(defun lsp-treemacs--error-list-diags (_folder file &rest _)
   (->> (lsp-diagnostics)
        (gethash file)
        (-filter #'lsp-treemacs--match-diagnostic-severity)
@@ -1203,7 +1203,7 @@ With prefix 2 show both."
                                  (propertize (f-dirname (f-relative file folder))
                                              'face 'lsp-details-face))
                   :icon (if (f-directory? file) 'dir-closed (f-ext file))
-                  :children (-partial #'lsp-treeemacs--error-list-diags folder file)
+                  :children (-partial #'lsp-treemacs--error-list-diags folder file)
                   :ret-action (lambda (&rest _)
                                 (interactive)
                                 (lsp-treemacs--open-file-in-mru file))))))))
@@ -1317,7 +1317,7 @@ With prefix 2 show both."
 
 (define-minor-mode lsp-treemacs-error-list-mode ""
   :keymap lsp-treemacs-error-list-mode-map
-  :group 'lsp-treeemacs)
+  :group 'lsp-treemacs)
 
 (defun lsp-treemacs--match-diagnostic-severity (diagnostic)
   (<= (lsp:diagnostic-severity? diagnostic)
