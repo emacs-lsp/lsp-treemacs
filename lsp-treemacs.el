@@ -868,7 +868,7 @@ will be rendered an empty line between them."
      0.001 nil
      (lambda ()
        (-when-let* ((actions (if-let (node (treemacs-node-at-point))
-                                 (plist-get (button-get node :item) :actions)
+                                 (lsp-resolve-value (plist-get (button-get node :item) :actions))
                                lsp-treemacs--right-click-actions))
                     (menu (easy-menu-create-menu nil actions))
                     (choice (x-popup-menu event menu)))
