@@ -1259,7 +1259,7 @@ With prefix 2 show both."
 
 (defvar lsp-treemacs--current-workspaces nil)
 
-(defun lsp-treemacs-errors-list--refresh ()
+(defun lsp-treemacs-errors-list--refresh (prefix-args)
   (lsp-treemacs-render
    (if (and lsp-treemacs-error-list-current-project-only
             lsp-treemacs--current-workspaces)
@@ -1271,19 +1271,19 @@ With prefix 2 show both."
           (lsp-session-folders)
           (-keep #'lsp-treemacs--build-error-list)))
    "Errors List"
-   nil
+   prefix-args
    lsp-treemacs-errors-buffer-name
    `(["Cycle Severity" lsp-treemacs-cycle-severity])))
 
 ;;;###autoload
-(defun lsp-treemacs-errors-list ()
-  (interactive)
+(defun lsp-treemacs-errors-list (arg)
+  (interactive "P")
   (setq lsp-treemacs--current-workspaces (lsp-workspaces))
   (-if-let (buffer (get-buffer lsp-treemacs-errors-buffer-name))
       (progn
         (select-window (display-buffer-in-side-window buffer lsp-treemacs-errors-position-params))
-        (lsp-treemacs-errors-list--refresh))
-    (let* ((buffer (lsp-treemacs-errors-list--refresh))
+        (lsp-treemacs-errors-list--refresh arg))
+    (let* ((buffer (lsp-treemacs-errors-list--refresh arg))
            (window (display-buffer-in-side-window buffer lsp-treemacs-errors-position-params)))
       (select-window window)
       (set-window-dedicated-p window t)
@@ -1292,7 +1292,7 @@ With prefix 2 show both."
       (add-hook 'lsp-diagnostics-updated-hook #'lsp-treemacs-errors-list--refresh)
       (add-hook 'kill-buffer-hook 'lsp-treemacs--kill-buffer nil t)))
 
-  (let ((buf (lsp-treemacs-errors-list--refresh)))
+  (let ((buf (lsp-treemacs-errors-list--refresh arg)))
     (pop-to-buffer buf)
     (with-current-buffer buf
       (lsp-treemacs-error-list-mode 1))))
