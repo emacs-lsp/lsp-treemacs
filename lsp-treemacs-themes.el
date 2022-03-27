@@ -23,6 +23,7 @@
 ;;
 ;;; Code:
 
+(require 'f)
 (require 'treemacs)
 (require 'treemacs-themes)
 
