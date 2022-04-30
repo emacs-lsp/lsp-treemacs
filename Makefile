@@ -1,34 +1,24 @@
-.PHONY: all build unix-compile windows-compile clean
-
 EMACS ?= emacs
 CASK ?= cask
+.PHONY: all build compile clean
 
-LSP-TREEMACS-GENERAL := lsp-treemacs.el lsp-treemacs-themes.el
+ci: clean build compile
 
 all:
-	$(CASK) build
+	$(EASK) build
 
 build:
-	$(CASK) install
+	$(EASK) package
+	$(EASK) install
 
-# NOTE: treemacs also sets treemacs-no-load-time-warnings to t in its Makefile, so I guess it's OK?
-unix-compile:
-	@$(CASK) $(EMACS) -Q --batch \
-		-L . \
-		--eval '(setq byte-compile-error-on-warn t)' \
-		-f batch-byte-compile $(LSP-TREEMACS-GENERAL)
+compile:
+	$(EASK) compile
 
-windows-compile:
-	@$(CASK) $(EMACS) -Q --batch \
-		-l test/windows-bootstrap.el \
-		-L . \
-		--eval '(setq byte-compile-error-on-warn t)' \
-		-f batch-byte-compile $(LSP-TREEMACS-GENERAL)
+checkdoc:
+	$(EASK) checkdoc
 
-unix-ci: clean build unix-compile
-
-windows-ci: CASK=
-windows-ci: clean windows-compile
+lint:
+	$(EASK) lint
 
 clean:
-	rm -rf .cask *.elc
+	$(EASK) clean-all
