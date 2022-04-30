@@ -1,5 +1,6 @@
 EMACS ?= emacs
-CASK ?= cask
+EASK ?= eask
+
 .PHONY: all build compile clean
 
 ci: clean build compile
