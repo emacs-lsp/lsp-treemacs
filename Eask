@@ -4,6 +4,8 @@
 
 (package-file "lsp-treemacs.el")
 
+(files "*.el")
+
 (source "gnu")
 (source "melpa")
 
