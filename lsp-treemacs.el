@@ -582,7 +582,7 @@ will be rendered an empty line between them."
     m)
   "Keymap for `lsp-treemacs-deps-list-mode'.")
 
-(define-minor-mode lsp-treemacs-deps-list-mode ""
+(define-minor-mode lsp-treemacs-deps-list-mode "LSP Treemacs mode for listing dependencies."
   :keymap lsp-treemacs-deps-list-mode-map
   :group 'lsp-treemacs)
 
@@ -1315,7 +1315,7 @@ With prefix 2 show both."
     m)
   "Keymap for `lsp-treemacs-error-list-mode'.")
 
-(define-minor-mode lsp-treemacs-error-list-mode ""
+(define-minor-mode lsp-treemacs-error-list-mode "LSP Treemacs mode for listing errors."
   :keymap lsp-treemacs-error-list-mode-map
   :group 'lsp-treemacs)
 
