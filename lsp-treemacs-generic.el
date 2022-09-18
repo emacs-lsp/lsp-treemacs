@@ -142,7 +142,8 @@
         (when treemacs-text-scale
           (text-scale-increase treemacs-text-scale))
         (lsp-treemacs-generic-mode t)
-        (when expand-depth (lsp-treemacs--expand 'lsp-treemacs-generic-root expand-depth)))
+        ;; (when expand-depth (lsp-treemacs--expand 'lsp-treemacs-generic-root expand-depth))
+        )
       (current-buffer))))
 
 (provide 'lsp-treemacs-generic)
