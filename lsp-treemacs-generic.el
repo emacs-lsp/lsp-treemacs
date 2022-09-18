@@ -130,19 +130,19 @@
                                  &optional buffer-name right-click-actions _clear-cache?)
   (let ((buffer (get-buffer-create (or buffer-name "*LSP Lookup*"))))
     (with-current-buffer buffer
-      (setq-local treemacs-default-visit-action 'treemacs-RET-action)
-      (setq-local lsp-treemacs--right-click-actions right-click-actions)
-      (setq-local face-remapping-alist '((button . default)))
-      (setq-local window-size-fixed nil)
-      (setq-local treemacs--width-is-locked nil)
-      (setq-local treemacs-space-between-root-nodes nil)
-      (lsp-treemacs--set-mode-line-format buffer title)
       (treemacs-initialize 'lsp-treemacs-generic-root
-        (setq-local lsp-treemacs-tree tree))
-      (when treemacs-text-scale
-        (text-scale-increase treemacs-text-scale))
-      (lsp-treemacs-generic-mode t)
-      (when expand-depth (lsp-treemacs--expand 'lsp-treemacs-generic-root expand-depth))
+        (lsp-treemacs--set-mode-line-format buffer title)
+        (setq-local face-remapping-alist '((button . default)))
+        (setq-local lsp-treemacs-tree tree)
+        (setq-local treemacs-default-visit-action 'treemacs-RET-action)
+        (setq-local lsp-treemacs--right-click-actions right-click-actions)
+        (setq-local window-size-fixed nil)
+        (setq-local treemacs--width-is-locked nil)
+        (setq-local treemacs-space-between-root-nodes nil)
+        (when treemacs-text-scale
+          (text-scale-increase treemacs-text-scale))
+        (lsp-treemacs-generic-mode t)
+        (when expand-depth (lsp-treemacs--expand 'lsp-treemacs-generic-root expand-depth)))
       (current-buffer))))
 
 (provide 'lsp-treemacs-generic)
