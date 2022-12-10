@@ -2,9 +2,14 @@
          "0.4"
          "LSP treemacs")
 
+(website-url "https://github.com/emacs-lsp/lsp-treemacs")
+(keywords "languages")
+
 (package-file "lsp-treemacs.el")
 
 (files "*.el")
+
+(script "test" "echo \"Error: no test specified\" && exit 1")
 
 (source "gnu")
 (source "melpa")
