@@ -22,4 +22,4 @@ lint:
 	$(EASK) lint
 
 clean:
-	$(EASK) clean-all
+	$(EASK) clean all
