@@ -79,7 +79,7 @@
        (if expanded?  "▾ " "▸ ")
      "  ")
    (or (plist-get item :icon-literal)
-       (if-let ((icon (plist-get item :icon)))
+       (if-let (icon (plist-get item :icon))
            (treemacs-get-icon-value
             icon
             nil
