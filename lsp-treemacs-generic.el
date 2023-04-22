@@ -32,6 +32,13 @@
 (defvar-local lsp-treemacs--right-click-actions nil)
 (defvar-local lsp-treemacs-generic-filter nil)
 
+(defmacro lsp-treemacs-wcb-unless-killed (buffer &rest body)
+  "`with-current-buffer' unless buffer killed."
+  (declare (indent 1) (debug t))
+  `(when (buffer-live-p (get-buffer ,buffer))
+     (with-current-buffer ,buffer
+       ,@body)))
+
 (defun lsp-treemacs-generic-refresh (&optional _cache)
   (condition-case _err
       (let ((inhibit-read-only t))

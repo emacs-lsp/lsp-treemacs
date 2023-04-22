@@ -590,13 +590,6 @@ will be rendered an empty line between them."
   (-let (((_ _package _class jar-file) (s-match "jdt://contents/.*\/\\(.*\\)\/\\(.*\\).class\\?=.*?/\\(.*?\\)=\/" file)))
     (symbol-name (read (url-unhex-string jar-file )))))
 
-(defmacro lsp-treemacs-wcb-unless-killed (buffer &rest body)
-  "`with-current-buffer' unless buffer killed."
-  (declare (indent 1) (debug t))
-  `(when (buffer-live-p (get-buffer ,buffer))
-     (with-current-buffer ,buffer
-       ,@body)))
-
 (defun lsp-treemacs--get-xrefs-in-file (file-locs location-link)
   (-let (((filename . links) file-locs))
     (list :key filename
