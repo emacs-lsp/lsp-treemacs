@@ -233,7 +233,7 @@ this hook will be run after having jumped to the target."
        ,(if (stringp docstring) docstring (format "Code action %s." name))
        (interactive)
        (ignore args)
-       (if-let (node (treemacs-node-at-point))
+       (-if-let (node (treemacs-node-at-point))
            (-let [,(cons '&plist keys) (button-get node :item)]
              ,@body)
          (treemacs-pulse-on-failure "No node at point")))))
