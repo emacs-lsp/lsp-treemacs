@@ -566,7 +566,8 @@ will be rendered an empty line between them."
 
 ;;;###autoload
 (define-minor-mode lsp-treemacs-sync-mode
-  "Global minor mode for synchronizing lsp-mode workspace folders and treemacs projects."
+  "Global minor mode for synchronizing lsp-mode workspace folders
+and treemacs projects."
   :init-value nil
   :group 'lsp-treemacs
   :global t
@@ -731,7 +732,8 @@ depending on if a custom mode line is detected."
 ;;;###autoload
 (defun lsp-treemacs-references (arg)
   "Show the references for the symbol at point.
-With a prefix argument, select the new window and expand the tree of references automatically."
+With a prefix argument, select the new window and expand the tree
+of references automatically."
   (interactive "P")
   (lsp-treemacs--do-search
    "textDocument/references"
@@ -742,7 +744,8 @@ With a prefix argument, select the new window and expand the tree of references 
 ;;;###autoload
 (defun lsp-treemacs-implementations (arg)
   "Show the implementations for the symbol at point.
-With a prefix argument, select the new window expand the tree of implementations automatically."
+With a prefix argument, select the new window expand the tree of
+implementations automatically."
   (interactive "P")
   (lsp-treemacs--do-search "textDocument/implementation"
                            (lsp--text-document-position-params)

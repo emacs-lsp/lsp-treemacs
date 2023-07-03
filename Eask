@@ -14,6 +14,9 @@
 (source "gnu")
 (source "melpa")
 
+(website-url "https://github.com/emacs-lsp/lsp-treemacs")
+(keywords "languages")
+
 (depends-on "emacs" "26.1")
 (depends-on "dash")
 (depends-on "f")
