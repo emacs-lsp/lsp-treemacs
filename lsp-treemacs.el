@@ -124,6 +124,26 @@ Fallback to list all workspaces if no project root is found."
   :type 'boolean
   :group 'lsp-treemacs)
 
+(defcustom lsp-treemacs-error-list-expand-depth nil
+  "Automatic expansion depth for `lsp-treemacs-error-list'"
+  :type 'number
+  :group 'lsp-treemacs)
+
+(defcustom lsp-treemacs-call-hierarchy-expand-depth nil
+  "Automatic expansion depth for `lsp-treemacs-call-hierarchy'"
+  :type 'number
+  :group 'lsp-treemacs)
+
+(defcustom lsp-treemacs-type-hierarchy-expand-depth nil
+  "Automatic expansion depth for `lsp-treemacs-type-hierarchy'"
+  :type 'number
+  :group 'lsp-treemacs)
+
+(defcustom lsp-treemacs-java-deps-list-expand-depth nil
+  "Automatic expansion depth for `lsp-treemacs-java-deps-list'"
+  :type 'number
+  :group 'lsp-treemacs)
+
 (defun lsp-treemacs--open-file-in-mru (file)
   (select-window (get-mru-window (selected-frame) nil :not-selected))
   (find-file file))
@@ -482,7 +502,7 @@ will be rendered an empty line between them."
    (display-buffer-in-side-window
     (lsp-treemacs-render
      (-map 'lsp-treemacs-deps--process-dep (lsp-treemacs-deps--root-folders))
-     "*Java Deps*" nil)
+     "*Java Deps*" lsp-treemacs-java-deps-list-expand-depth)
     lsp-treemacs-deps-position-params)))
 
 (defun lsp-treemacs--deps-find-children-for-key (node key)
@@ -816,7 +836,7 @@ With a prefix argument, show the outgoing call hierarchy."
         (lsp-request "textDocument/prepareCallHierarchy"
                      (lsp--text-document-position-params)))
        (concat (if outgoing "Outgoing" "Incoming") " Call Hierarchy")
-       nil "*Call Hierarchy*" nil t) nil))))
+       lsp-treemacs-call-hierarchy-expand-depth "*Call Hierarchy*" nil t) nil))))
 
 
 
@@ -887,7 +907,7 @@ With prefix 2 show both."
                    ((eq lsp-treemacs--hierarchy-super direction) "Super")
                    ((eq lsp-treemacs--hierarchy-both direction) "Sub/Super"))
                   " Type Hierarchy")
-          nil
+          lsp-treemacs-type-hierarchy-expand-depth
           "*lsp-treemacs-call-hierarchy*"))
       (user-error "No class under point."))
     (setq lsp--buffer-workspaces workspaces)))
@@ -1022,7 +1042,7 @@ With prefix 2 show both."
           (lsp-session-folders)
           (-keep #'lsp-treemacs--build-error-list)))
    "Errors List"
-   nil
+   lsp-treemacs-error-list-expand-depth
    lsp-treemacs-errors-buffer-name
    `(["Cycle Severity" lsp-treemacs-cycle-severity])))
 
