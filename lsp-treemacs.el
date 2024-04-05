@@ -124,22 +124,22 @@ Fallback to list all workspaces if no project root is found."
   :type 'boolean
   :group 'lsp-treemacs)
 
-(defcustom lsp-treemacs-error-list-expand-depth 3
+(defcustom lsp-treemacs-error-list-expand-depth nil
   "Automatic expansion depth for `lsp-treemacs-error-list'"
   :type 'number
   :group 'lsp-treemacs)
 
-(defcustom lsp-treemacs-call-hierarchy-expand-depth 2
+(defcustom lsp-treemacs-call-hierarchy-expand-depth nil
   "Automatic expansion depth for `lsp-treemacs-call-hierarchy'"
   :type 'number
   :group 'lsp-treemacs)
 
-(defcustom lsp-treemacs-type-hierarchy-expand-depth 3
+(defcustom lsp-treemacs-type-hierarchy-expand-depth nil
   "Automatic expansion depth for `lsp-treemacs-type-hierarchy'"
   :type 'number
   :group 'lsp-treemacs)
 
-(defcustom lsp-treemacs-java-deps-list-expand-depth 2
+(defcustom lsp-treemacs-java-deps-list-expand-depth nil
   "Automatic expansion depth for `lsp-treemacs-java-deps-list'"
   :type 'number
   :group 'lsp-treemacs)
