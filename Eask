@@ -1,5 +1,5 @@
 (package "lsp-treemacs"
-         "0.4"
+         "0.5"
          "LSP treemacs")
 
 (website-url "https://github.com/emacs-lsp/lsp-treemacs")
