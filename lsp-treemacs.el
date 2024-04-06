@@ -26,6 +26,7 @@
 ;; `lsp-mode' and `treemacs' integration.
 
 ;;; Code:
+
 (require 'treemacs)
 (require 'treemacs-icons)
 (require 'treemacs-treelib)

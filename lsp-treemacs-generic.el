@@ -24,6 +24,8 @@
 
 ;;; Code:
 
+(require 'lsp-mode)
+
 (require 'treemacs)
 (require 'treemacs-treelib)
 (require 'lsp-treemacs-themes)
