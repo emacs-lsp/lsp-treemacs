@@ -125,22 +125,22 @@ Fallback to list all workspaces if no project root is found."
   :group 'lsp-treemacs)
 
 (defcustom lsp-treemacs-error-list-expand-depth nil
-  "Automatic expansion depth for `lsp-treemacs-error-list'"
+  "Automatic expansion depth for `lsp-treemacs-error-list'."
   :type 'number
   :group 'lsp-treemacs)
 
 (defcustom lsp-treemacs-call-hierarchy-expand-depth nil
-  "Automatic expansion depth for `lsp-treemacs-call-hierarchy'"
+  "Automatic expansion depth for `lsp-treemacs-call-hierarchy'."
   :type 'number
   :group 'lsp-treemacs)
 
 (defcustom lsp-treemacs-type-hierarchy-expand-depth nil
-  "Automatic expansion depth for `lsp-treemacs-type-hierarchy'"
+  "Automatic expansion depth for `lsp-treemacs-type-hierarchy'."
   :type 'number
   :group 'lsp-treemacs)
 
 (defcustom lsp-treemacs-java-deps-list-expand-depth nil
-  "Automatic expansion depth for `lsp-treemacs-java-deps-list'"
+  "Automatic expansion depth for `lsp-treemacs-java-deps-list'."
   :type 'number
   :group 'lsp-treemacs)
 
@@ -586,7 +586,8 @@ will be rendered an empty line between them."
 
 ;;;###autoload
 (define-minor-mode lsp-treemacs-sync-mode
-  "Global minor mode for synchronizing lsp-mode workspace folders and treemacs projects."
+  "Global minor mode for synchronizing lsp-mode workspace folders and
+treemacs projects."
   :init-value nil
   :group 'lsp-treemacs
   :global t
@@ -751,7 +752,8 @@ depending on if a custom mode line is detected."
 ;;;###autoload
 (defun lsp-treemacs-references (arg)
   "Show the references for the symbol at point.
-With a prefix argument, select the new window and expand the tree of references automatically."
+With a prefix argument, select the new window and expand the tree of
+references automatically."
   (interactive "P")
   (lsp-treemacs--do-search
    "textDocument/references"
@@ -762,7 +764,8 @@ With a prefix argument, select the new window and expand the tree of references 
 ;;;###autoload
 (defun lsp-treemacs-implementations (arg)
   "Show the implementations for the symbol at point.
-With a prefix argument, select the new window expand the tree of implementations automatically."
+With a prefix argument, select the new window expand the tree of
+implementations automatically."
   (interactive "P")
   (lsp-treemacs--do-search "textDocument/implementation"
                            (lsp--text-document-position-params)

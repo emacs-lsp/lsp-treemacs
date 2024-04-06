@@ -32,6 +32,8 @@
 (defvar-local lsp-treemacs--right-click-actions nil)
 (defvar-local lsp-treemacs-generic-filter nil)
 
+(declare-function lsp-treemacs--set-mode-line-format "lsp-treemacs.el")
+
 (defmacro lsp-treemacs-wcb-unless-killed (buffer &rest body)
   "`with-current-buffer' unless buffer killed."
   (declare (indent 1) (debug t))
