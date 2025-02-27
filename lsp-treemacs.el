@@ -941,7 +941,7 @@ With prefix 2 show both."
                                         (propertize (format "[%s]" source?)
                                                     'face 'shadow)
                                       "")
-                                    message
+                                    (string-join (mapcar #'string-trim (string-lines message)) ", ")
                                     (propertize (format "(%s:%s)" line character)
                                                 'face 'lsp-details-face))
                      :icon-literal (lsp-treemacs--diagnostic-icon severity?)
