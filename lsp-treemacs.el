@@ -557,13 +557,33 @@ will be rendered an empty line between them."
   (lsp-workspace-folders-add (treemacs-project->path project)))
 
 (defun lsp-treemacs--treemacs->lsp ()
-  (let ((lsp-folders (lsp-session-folders (lsp-session)))
-        (treemacs-folders (->> (treemacs-current-workspace)
-                               (treemacs-workspace->projects)
-                               (-map #'treemacs-project->path)
-                               (-map #'lsp-canonical-file-name))))
-    (seq-do #'lsp-workspace-folders-remove (-difference lsp-folders treemacs-folders))
-    (seq-do #'lsp-workspace-folders-add (-difference treemacs-folders lsp-folders))))
+  "Synchronize treemacs projects with lsp workspace folders
+but maintain diagnostics across perspective switches."
+  (let* ((lsp-folders (lsp-session-folders (lsp-session)))
+         (treemacs-folders (->> (treemacs-current-workspace)
+                                (treemacs-workspace->projects)
+                                (-map #'treemacs-project->path)
+                                (-map #'lsp-canonical-file-name)))
+         (to-remove (-difference lsp-folders treemacs-folders))
+         (to-add (-difference treemacs-folders lsp-folders)))
+
+    ;; Modify folders without shutting down workspaces
+    (cl-flet ((lsp-workspace-folders-remove (folder)
+                (let ((session (lsp-session)))
+                  (setf (lsp-session-folders session)
+                        (-remove-item folder (lsp-session-folders session)))
+                  (lsp--persist-session session)
+                  (run-hook-with-args 'lsp-workspace-folders-changed-functions
+                                      nil (list folder)))))
+      ;; Remove folders not in current treemacs workspace
+      (seq-do #'lsp-workspace-folders-remove to-remove))
+
+    ;; Add folders from current treemacs workspace
+    (seq-do #'lsp-workspace-folders-add to-add)
+
+    ;; Refresh errors list to show only current workspace errors
+    (when (get-buffer lsp-treemacs-errors-buffer-name)
+      (lsp-treemacs-errors-list--refresh))))
 
 (defun lsp-treemacs--sync-folders (added removed)
   (when-let (treemacs-workspace (treemacs-current-workspace))
