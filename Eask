@@ -1,3 +1,5 @@
+;; -*- mode: eask; lexical-binding: t -*-
+
 (package "lsp-treemacs"
          "0.5"
          "LSP treemacs")
