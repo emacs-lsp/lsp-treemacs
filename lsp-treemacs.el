@@ -119,6 +119,13 @@
   "Severity level for `lsp-treemacs-error-list-mode'. 1 (highest) to 3 (lowest)"
   :type 'number)
 
+(defcustom lsp-treemacs-symbols-exclusions
+  '()
+  "List of icon types to exclude from `lsp-treemacs-symbols'.
+As an example, '(localvariable constant) will remove all variables and constants from the display."
+  :group 'lsp-treemacs
+  :type '(list symbol))
+
 (defcustom lsp-treemacs-error-list-current-project-only nil
   "List the error list of the current project only if available.
 Fallback to list all workspaces if no project root is found."
@@ -277,36 +284,39 @@ this hook will be run after having jumped to the target."
            (-first (lambda (fn)
                      (funcall fn left right))
                    lsp-treemacs-symbols-sort-functions))
-         (if (-some->> items lsp-seq-first lsp-symbol-information?)
-             (-let [(current rest) (-separate (-lambda ((&SymbolInformation :container-name?))
-                                                (string= container-name? parent-key))
-                                              (append items nil))]
-               (seq-map (-lambda ((&SymbolInformation :name :container-name? :kind
-                                                      :location (location &as &Location :range (&Range :start start-range))))
-                          (when (string= parent-key container-name?)
-                            `(:label ,name
-                                     :key ,name
-                                     :icon ,(lsp-treemacs-symbol-kind->icon kind)
-                                     ,@(when (-first (-lambda ((&SymbolInformation :container-name? parent))
-                                                       (string= name parent))
-                                                     rest)
-                                         (list :children (lsp-treemacs--symbols->tree rest name)))
-                                     :kind ,kind
-                                     :location ,start-range
-                                     :ret-action lsp-treemacs-symbols-goto-symbol)))
-                        current))
-           (seq-map
-            (-lambda ((sym &as &DocumentSymbol :name :kind :selection-range
-                           (&Range :start start-range) :children?))
-              `(:label ,(lsp-render-symbol sym lsp-treemacs-detailed-outline)
-                       :key ,name
-                       :icon ,(lsp-treemacs-symbol-kind->icon kind)
-                       :kind ,kind
-                       :location ,start-range
-                       ,@(unless (seq-empty-p children?)
-                           (list :children (lsp-treemacs--symbols->tree children? name)))
-                       :ret-action lsp-treemacs-symbols-goto-symbol))
-            items))))
+         (seq-filter
+          (lambda (i) (not (memq (lsp-treemacs-symbol-kind->icon (plist-get i :kind))
+                                 lsp-treemacs-symbols-exclusions)))
+          (if (-some->> items lsp-seq-first lsp-symbol-information?)
+              (-let [(current rest) (-separate (-lambda ((&SymbolInformation :container-name?))
+                                                 (string= container-name? parent-key))
+                                               (append items nil))]
+                (seq-map (-lambda ((&SymbolInformation :name :container-name? :kind
+                                                       :location (location &as &Location :range (&Range :start start-range))))
+                           (when (string= parent-key container-name?)
+                             `(:label ,name
+                               :key ,name
+                               :icon ,(lsp-treemacs-symbol-kind->icon kind)
+                               ,@(when (-first (-lambda ((&SymbolInformation :container-name? parent))
+                                                 (string= name parent))
+                                               rest)
+                                   (list :children (lsp-treemacs--symbols->tree rest name)))
+                               :kind ,kind
+                               :location ,start-range
+                               :ret-action lsp-treemacs-symbols-goto-symbol)))
+                         current))
+            (seq-map
+             (-lambda ((sym &as &DocumentSymbol :name :kind :selection-range
+                            (&Range :start start-range) :children?))
+               `(:label ,(lsp-render-symbol sym lsp-treemacs-detailed-outline)
+                 :key ,name
+                 :icon ,(lsp-treemacs-symbol-kind->icon kind)
+                 :kind ,kind
+                 :location ,start-range
+                 ,@(unless (seq-empty-p children?)
+                     (list :children (lsp-treemacs--symbols->tree children? name)))
+                 :ret-action lsp-treemacs-symbols-goto-symbol))
+             items)))))
 
 (defun lsp-treemacs--update-symbols ()
   "After diagnostics handler."
