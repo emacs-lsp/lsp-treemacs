@@ -375,7 +375,9 @@ this hook will be run after having jumped to the target."
      (lsp-treemacs--expand-recursively root depth))))
 
 (defun lsp-treemacs--kill-symbols-buffer ()
-  (setq lsp-treemacs--symbols-timer (cancel-timer lsp-treemacs--symbols-timer)))
+  (when lsp-treemacs--symbols-timer
+    (cancel-timer lsp-treemacs--symbols-timer)
+    (setq lsp-treemacs--symbols-timer nil)))
 
 (defcustom lsp-treemacs-symbols-space-between-root-nodes nil
   "Whether there should be empty lines between symbols.
